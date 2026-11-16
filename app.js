@@ -10,7 +10,7 @@ import { applySecurityHeaders, createApiRateLimiter } from "./middleware/securit
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function createApp({ collectionProvider, databaseConfigured = isDatabaseConfigured(), rateLimitOptions } = {}) {
+export function createApp({ collectionProvider, todoCollectionProvider, databaseConfigured = isDatabaseConfigured(), rateLimitOptions } = {}) {
   const app = express();
 
   app.disable("x-powered-by");
@@ -35,6 +35,8 @@ export function createApp({ collectionProvider, databaseConfigured = isDatabaseC
       { method: "GET", path: "/api/users", description: "登録済みのデモデータをすべて取得します。", available: databaseConfigured },
       { method: "GET", path: "/api/users/:id", description: "IDで指定したデモデータを1件取得します。", available: databaseConfigured },
       { method: "GET", path: "/api/users?status=active", description: "status条件に一致するデモデータを検索します。", available: databaseConfigured },
+      { method: "GET", path: "/api/todos", description: "公開デモToDoを一覧取得します。", available: databaseConfigured },
+      { method: "GET", path: "/api/todos/:id", description: "IDで指定した公開デモToDoを1件取得します。", available: databaseConfigured },
     ];
     res.render("index", { endpoints, resources: publicResources, configured: databaseConfigured });
   });
@@ -44,7 +46,7 @@ export function createApp({ collectionProvider, databaseConfigured = isDatabaseC
   });
 
   app.use("/api", createApiRateLimiter(rateLimitOptions));
-  app.use("/api", createApiRouter(collectionProvider));
+  app.use("/api", createApiRouter(collectionProvider, todoCollectionProvider));
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "not_found", message: "APIエンドポイントが見つかりません。" });
   });
