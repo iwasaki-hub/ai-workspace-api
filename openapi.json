@@ -1,0 +1,293 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI Workspace API",
+    "version": "0.5.0",
+    "summary": "Read-only demo REST API",
+    "description": "MongoDB Atlasから `demo: true` のレコードのみを読み取る学習用公開REST API。書き込みAPIは提供しません。`/health` はMongoDBの接続検証を行いません。"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "現在のホスト（Renderまたはローカル）"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "稼働確認"
+    },
+    {
+      "name": "Users",
+      "description": "デモデータ取得"
+    }
+  ],
+  "security": [],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": [
+          "Health"
+        ],
+        "summary": "サーバー稼働確認",
+        "description": "MongoDBへはアクセスしません。",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "status": "ok",
+                  "service": "ai-workspace-api"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "operationId": "listDemoUsers",
+        "tags": [
+          "Users"
+        ],
+        "summary": "公開デモユーザー一覧取得",
+        "description": "`demo: true` のレコードを `_id` 昇順で最大50件返します。空の配列の場合もあります。",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "active/inactiveを指定。重複して指定した場合は400を返します。",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "inactive"
+              ]
+            },
+            "example": "active"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 50,
+                  "items": {
+                    "$ref": "#/components/schemas/DemoUser"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "6afaa9fb021f207d9648f5ad",
+                    "name": "デモ太郎",
+                    "status": "active",
+                    "purpose": "接続テスト"
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "description": "statusが不正",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "invalid_status",
+                  "message": "statusにはactiveまたはinactiveを指定してください。"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DB設定不足または読み取り失敗",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "service_unavailable",
+                  "message": "データを取得できませんでした。時間をおいて再試行してください。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "operationId": "getDemoUserById",
+        "tags": [
+          "Users"
+        ],
+        "summary": "ObjectIdによるデモユーザーの取得",
+        "description": "一致するObjectIdを持ち、`demo: true` のレコードのみ返します。",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "24桁の16進数のMongoDB ObjectId",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            },
+            "example": "6afaa9fb021f207d9648f5ad"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoUser"
+                },
+                "example": {
+                  "id": "6afaa9fb021f207d9648f5ad",
+                  "name": "デモ太郎",
+                  "status": "active",
+                  "purpose": "接続テスト"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "IDの形式が不正",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "invalid_id",
+                  "message": "IDは24桁の16進数で指定してください。"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公開データが見つからない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "not_found",
+                  "message": "指定されたデータは見つかりませんでした。"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DB設定不足または読み取り失敗",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "service_unavailable",
+                  "message": "データを取得できませんでした。時間をおいて再試行してください。"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "service"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok"
+          },
+          "service": {
+            "type": "string",
+            "const": "ai-workspace-api"
+          }
+        }
+      },
+      "DemoUser": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "status",
+          "purpose"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{24}$",
+            "description": "MongoDB ObjectIdの文字列表現"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "active",
+              "inactive",
+              null
+            ]
+          },
+          "purpose": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error",
+          "message"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
