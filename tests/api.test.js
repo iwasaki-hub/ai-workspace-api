@@ -44,8 +44,8 @@ function mockCollection(data = fixture, observation = {}) {
   };
 }
 
-async function withApp(run, { provider = async () => mockCollection(), configured = true } = {}) {
-  const server = createApp({ collectionProvider: provider, databaseConfigured: configured }).listen(0, "127.0.0.1");
+async function withApp(run, { provider = async () => mockCollection(), configured = true, rateLimitOptions } = {}) {
+  const server = createApp({ collectionProvider: provider, databaseConfigured: configured, rateLimitOptions }).listen(0, "127.0.0.1");
   try {
     await new Promise((resolve, reject) => {
       if (server.listening) return resolve();
