@@ -19,6 +19,8 @@ if (form) {
   function requestPath() {
     switch (endpoint.value) {
       case "health": return "/health";
+      case "todos": return "/api/todos";
+      case "todo-id": return "/api/todos/" + id.value.trim();
       case "status": return "/api/users?status=" + encodeURIComponent(status.value);
       case "id": return "/api/users/" + id.value.trim();
       default: return "/api/users";
@@ -27,7 +29,7 @@ if (form) {
 
   function syncForm() {
     statusField.hidden = endpoint.value !== "status";
-    idField.hidden = endpoint.value !== "id";
+    idField.hidden = endpoint.value !== "id" && endpoint.value !== "todo-id";
     pathDisplay.textContent = requestPath();
   }
 
@@ -39,7 +41,7 @@ if (form) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (send.disabled) return;
-    if (endpoint.value === "id" && !/^[0-9a-f]{24}$/i.test(id.value.trim())) {
+    if ((endpoint.value === "id" || endpoint.value === "todo-id") && !/^[0-9a-f]{24}$/i.test(id.value.trim())) {
       httpStatus.textContent = "入力エラー";
       httpStatus.dataset.kind = "error";
       output.textContent = "IDは24桁の16進数で入力してください。";
