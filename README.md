@@ -1,49 +1,67 @@
 # AI Workspace API
 
-Node.js + Express を使用した、Render に初回デプロイするための最小アプリです。
+Node.js + Express + EJS + MongoDB Atlas の学習用REST API。GitHubからRenderへ自動デプロイします。
 
-## 現在の機能
+## ページとエンドポイント
 
-- `GET /` — 日本語の初期案内ページ
-- `GET /health` — 稼働確認用JSON（`{"status":"ok","service":"ai-workspace-api"}`）
+| Method | Path | 内容 |
+| --- | --- | --- |
+| GET | `/` | EJSによるAPI仕様ページ |
+| GET | `/health` | サーバーの稼働確認（DB接続確認は行いません） |
+| GET | `/api/users` | デモデータを取得（最大50件） |
+| GET | `/api/users?status=active` | activeのデモデータを取得（inactiveも指定可能） |
+| GET | `/api/users/:id` | 指定したデモデータを1件取得 |
 
-**まだMongoDB Atlasへの接続、EJSページ、公開データAPIは実装していません。** 今回はRenderで起動できることの確認が目的です。
+GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレコードのみです。返却フィールドは `id`, `name`, `status`, `purpose` のみです。MongoDBの `_id` は文字列の `id` に変換します。書き込み用APIはありません。
 
-## ローカル起動
+**接続が設定されていない場合やAtlasへ到達できない場合、データAPIはHTTP 503を返します。** `/health` が200でもDB接続済みという意味ではありません。
 
-Node.js 20以上をインストールして、以下を実行します。
+## ローカル実行
+
+Node.js 20以上:
 
 ```bash
 npm install
 npm start
 ```
 
-- http://localhost:3000/
-- http://localhost:3000/health
+ローカルでDB接続を試す場合は、Git管理対象外の`.env`に接続情報を設定し、Node.js起動時に読み込ませてください（Node.js 20以上の `node --env-file=.env server.js` など）。通常の `npm start` は `.env` を自動では読み込みません。
 
-## Render の初回設定
+必要な環境変数:
 
-RenderのDashboardから **New → Web Service** を選択し、GitHubリポジトリ `iwasaki-hub/ai-workspace-api` を接続します。
+- `MONGODB_URI`：MongoDB Atlasの接続URI（データベース用ユーザーの認証情報を含む）
+- `MONGODB_DB`：データベース名。省略すると `ai_workspace_db`
 
-| 設定 | 値 |
-| --- | --- |
-| Language | Node |
-| Branch | main |
-| Build Command | `npm install` |
-| Start Command | `npm start` |
-| Instance Type | Free（学習用） |
+## Renderの設定
 
-Renderが設定する`PORT`環境変数をアプリが使用し、`0.0.0.0`で待ち受けます。最初はMongoDBの接続情報を登録する必要はありません。
+Render Web Service: `ai-workspace-api`
 
-## セキュリティ
+- Build Command: `npm install`
+- Start Command: `npm start`
+- Auto Deploy: `main`
 
-- `.env`やAPIキー、DBパスワードはGitHubにコミットしないでください。
-- 将来のDB接続情報はRenderの **Environment** で設定します。
-- MongoDB AtlasのIP Access Listは、Renderサービス作成後に確認できるOutbound IP範囲に合わせて設定します。
-- APIの公開は当面読み取り専用を予定しています。
+Renderの **Environment** に `MONGODB_URI` をSecretとして設定します。必要なら `MONGODB_DB=ai_workspace_db` も設定します。実際のパスワードをGitHub、README、チャット等に貼り付けないでください。
 
-## 今後の予定
+MongoDB AtlasのIP Access Listには、Renderダッシュボードのサービスの **Connect → Outbound** に表示される送信元IP範囲を登録してください。すべてのIPを許可する `0.0.0.0/0` は避けます。
 
-1. Renderに初回デプロイし、`/`と`/health`が応答することを確認
-2. EJSによるAPI仕様ページ
-3. MongoDB Atlasの読み取り専用GET API
+AtlasのMongoDBユーザー `ai_workspace_app` は既存のreadWrite権限ですが、**公開APIはGETのみ**です。さらに安全にするため、将来はこのAPI専用のread権限のユーザーを作成することを推奨します。
+
+## ステータスコード
+
+- 200: 成功
+- 400: IDやstatusの形式が不正
+- 404: 対象IDのデモデータが見つからない
+- 503: DB設定がない、またはDBへの接続・読取不可
+
+## ディレクトリ
+
+```text
+server.js
+config/database.js
+controllers/userController.js
+routes/apiRoutes.js
+views/index.ejs
+views/partials/
+public/css/style.css
+public/js/main.js
+```
