@@ -1,0 +1,16 @@
+{
+  "name": "ai-workspace-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal Express API starter for Render, with plans for MongoDB Atlas and EJS.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
