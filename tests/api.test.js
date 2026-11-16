@@ -383,7 +383,7 @@ test("API limiter returns JSON 429 with RateLimit and Retry-After headers", asyn
       message: "リクエストが集中しています。時間をおいて再試行してください。",
     });
     assert.ok(third.headers.get("retry-after"));
-    assert.match(third.headers.get("ratelimit") || "", /r=0/);
+    assert.match(third.headers.get("ratelimit") || "", /remaining=0/);
     const health = await fetch(base + "/health", options);
     assert.equal(health.status, 200, "health checks are excluded");
     const home = await fetch(base + "/", options);
