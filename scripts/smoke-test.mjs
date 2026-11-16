@@ -114,7 +114,15 @@ async function main() {
   assert.deepEqual(todoById, todos[0], "todo ID lookup must match selected todo");
   console.log("PASS GET /api/todos/:id");
 
-  console.log(`SUCCESS: production smoke test passed (users=${users.length}, todos=${todos.length}, checks=7)`);
+  const stats = await retryReady("GET /api/stats", async () => {
+    const body = await getJson("/api/stats");
+    assert.deepEqual(Object.keys(body).sort(), ["startedAt", "totalRequests"]);
+    assert.ok(Number.isSafeInteger(body.totalRequests) && body.totalRequests >= 0);
+    assert.ok(!Number.isNaN(Date.parse(body.startedAt)));
+    return body;
+  });
+
+  console.log(`SUCCESS: production smoke test passed (users=${users.length}, todos=${todos.length}, requests=${stats.totalRequests}, checks=8)`);
 }
 
 main().catch((error) => {
