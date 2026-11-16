@@ -12,7 +12,7 @@
           <a class="button button-primary" href="#endpoints">APIを確認する <span aria-hidden="true">↗</span></a>
           <a class="button button-secondary" href="https://github.com/iwasaki-hub/ai-workspace-api" target="_blank" rel="noopener noreferrer">GitHubを見る <span aria-hidden="true">↗</span></a>
         </div>
-        <div class="hero-note"><span class="note-dot"></span> 現在はドキュメント公開段階です。MongoDB連携APIは今後実装します。</div>
+        <div class="hero-note"><span class="note-dot"></span> MongoDB連携APIは実装済みです。Atlas接続設定と動作確認が必要です。</div>
       </div>
       <div class="hero-visual" aria-label="APIレスポンスのイメージ">
         <div class="window-bar"><span class="window-dots"><i></i><i></i><i></i></span><span>response.json</span><span class="window-label">PREVIEW</span></div>
@@ -39,7 +39,7 @@
 
   <section class="section" id="endpoints">
     <div class="container">
-      <div class="section-heading"><div><span class="section-kicker">REFERENCE</span><h2>API エンドポイント</h2><p>現在利用可能なものと、今後の実装予定を区別して掲載しています。</p></div><span class="section-count"><%= endpoints.length %> ENDPOINTS</span></div>
+      <div class="section-heading"><div><span class="section-kicker">REFERENCE</span><h2>API エンドポイント</h2><p>現在利用可能なものと、Atlas接続設定が必要なものを区別して掲載しています。</p></div><span class="section-count"><%= endpoints.length %> ENDPOINTS</span></div>
       <div class="endpoint-list">
         <% endpoints.forEach(endpoint => { %>
           <article class="endpoint-card">
@@ -82,8 +82,8 @@ console.log(data);
       <div class="section-heading"><div><span class="section-kicker">WHAT'S NEXT</span><h2>開発ロードマップ</h2><p>小さく公開し、動作を確認しながら育てていきます。</p></div></div>
       <div class="roadmap-grid">
         <article class="roadmap-item"><span class="roadmap-step done">01</span><span class="roadmap-state">完了</span><h3>Express + Render</h3><p>最小のWebサーバーと稼働確認APIを公開。</p></article>
-        <article class="roadmap-item"><span class="roadmap-step current">02</span><span class="roadmap-state">現在の段階</span><h3>EJSドキュメント</h3><p>共通テンプレートを使ったAPI仕様ページを整備。</p></article>
-        <article class="roadmap-item"><span class="roadmap-step">03</span><span class="roadmap-state">今後</span><h3>MongoDB Atlas連携</h3><p>デモデータを読み取るGETエンドポイントを追加。</p></article>
+        <article class="roadmap-item"><span class="roadmap-step current">02</span><span class="roadmap-state">実装済み</span><h3>EJSドキュメント</h3><p>共通テンプレートを使ったAPI仕様ページを整備。</p></article>
+        <article class="roadmap-item"><span class="roadmap-step">03</span><span class="roadmap-state">接続設定待ち</span><h3>MongoDB Atlas連携</h3><p>GETエンドポイントは実装済み。Render環境変数とAtlasのIP設定後に接続確認。</p></article>
         <article class="roadmap-item"><span class="roadmap-step">04</span><span class="roadmap-state">将来検討</span><h3>API機能の拡充</h3><p>検索、OpenAPI、API実行テストなどを段階的に検討。</p></article>
       </div>
     </div>
