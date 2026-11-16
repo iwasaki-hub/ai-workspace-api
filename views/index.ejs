@@ -5,18 +5,18 @@
   <section class="hero" id="overview">
     <div class="container hero-inner">
       <div class="hero-copy">
-        <span class="eyebrow"><span class="eyebrow-dot"></span> API DOCUMENTATION · v0.1</span>
+        <span class="eyebrow"><span class="eyebrow-dot"></span> API DOCUMENTATION · v0.5</span>
         <h1>データとアプリを、<br><span>シンプルにつなぐ。</span></h1>
         <p class="hero-lead">MongoDB Atlas × Express で構築する、学習用REST API。JSONPlaceholderのように、シンプルなURLからJSONデータを利用できる仕組みを目指しています。</p>
         <div class="hero-actions">
           <a class="button button-primary" href="#endpoints">APIを確認する <span aria-hidden="true">↗</span></a>
           <a class="button button-secondary" href="https://github.com/iwasaki-hub/ai-workspace-api" target="_blank" rel="noopener noreferrer">GitHubを見る <span aria-hidden="true">↗</span></a>
         </div>
-        <div class="hero-note"><span class="note-dot"></span> MongoDB連携APIは実装済みです。Atlas接続設定と動作確認が必要です。</div>
+        <div class="hero-note"><span class="note-dot"></span> MongoDB接続と公開GET APIの動作確認が完了しています。</div>
       </div>
       <div class="hero-visual" aria-label="APIレスポンスのイメージ">
         <div class="window-bar"><span class="window-dots"><i></i><i></i><i></i></span><span>response.json</span><span class="window-label">PREVIEW</span></div>
-        <div class="code-block preview-code"><span class="code-comment">// Example response (planned)</span>
+        <div class="code-block preview-code"><span class="code-comment">// Example JSON response</span>
 <span class="code-text">[</span>
   <span class="code-text">{</span>
     <span class="code-key">"id"</span>: <span class="code-string">"example-id"</span>,
@@ -39,7 +39,7 @@
 
   <section class="section" id="endpoints">
     <div class="container">
-      <div class="section-heading"><div><span class="section-kicker">REFERENCE</span><h2>API エンドポイント</h2><p>現在利用可能なものと、Atlas接続設定が必要なものを区別して掲載しています。</p></div><span class="section-count"><%= endpoints.length %> ENDPOINTS</span></div>
+      <div class="section-heading"><div><span class="section-kicker">REFERENCE</span><h2>API エンドポイント</h2><p>利用できるGET APIを紹介しています。</p></div><span class="section-count"><%= endpoints.length %> ENDPOINTS</span></div>
       <div class="endpoint-list">
         <% endpoints.forEach(endpoint => { %>
           <article class="endpoint-card">
@@ -54,7 +54,51 @@
           </article>
         <% }) %>
       </div>
-      <p class="callout"><strong>Note</strong> <code>/api/users</code> などのパスは現在の設計案です。実装時に確定します。データの追加・更新・削除APIは初期公開対象外です。</p>
+      <p class="callout"><strong>Note</strong> <code>/api/users</code> は公開中の読み取り専用APIです。追加・更新・削除のAPIは提供していません。</p>
+    </div>
+  </section>
+
+
+  <section class="section explorer-section" id="try-api">
+    <div class="container">
+      <div class="section-heading">
+        <div>
+          <span class="section-kicker">LIVE PLAYGROUND</span>
+          <h2>ブラウザでAPIを試す</h2>
+          <p>公開GET APIを実際に呼び出し、HTTPステータスとJSONレスポンスを確認できます。データの変更は行いません。</p>
+        </div>
+      </div>
+      <div class="explorer-grid" data-api-explorer>
+        <form id="api-explorer-form" class="explorer-controls">
+          <label for="api-endpoint">エンドポイント</label>
+          <select id="api-endpoint" name="endpoint">
+            <option value="users">GET /api/users — 一覧</option>
+            <option value="status">GET /api/users?status= — 状態で検索</option>
+            <option value="id">GET /api/users/:id — IDで検索</option>
+            <option value="health">GET /health — 稼働確認</option>
+          </select>
+          <div class="explorer-field" id="status-field" hidden>
+            <label for="api-status">status</label>
+            <select id="api-status" name="status">
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+            </select>
+          </div>
+          <div class="explorer-field" id="id-field" hidden>
+            <label for="api-id">MongoDB ObjectId</label>
+            <input id="api-id" name="id" type="text" inputmode="text" maxlength="24" pattern="[a-fA-F0-9]{24}" placeholder="24桁の16進数" autocomplete="off">
+            <small>一覧取得で表示されたidをコピーして使えます。</small>
+          </div>
+          <div class="explorer-request"><span class="method-badge">GET</span><code id="api-request-path">/api/users</code></div>
+          <button class="button button-primary explorer-submit" type="submit" id="api-send">リクエストを送信 <span aria-hidden="true">↗</span></button>
+          <p class="explorer-help">同じサイト上の公開APIへのGETリクエストのみ実行します。</p>
+        </form>
+        <div class="explorer-response" aria-label="APIの実行結果">
+          <div class="explorer-response-head"><strong>レスポンス</strong><span id="api-http-status" class="explorer-status" aria-live="polite">未実行</span></div>
+          <pre class="explorer-output" id="api-response" tabindex="0" aria-live="polite">「リクエストを送信」を押すと、JSONがここに表示されます。</pre>
+          <div class="explorer-response-foot"><span id="api-response-time">—</span><button type="button" id="api-copy-response" class="copy-button" disabled>JSONをコピー</button></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -63,7 +107,7 @@
       <div class="example-intro">
         <span class="section-kicker">QUICK START</span>
         <h2>まずはAPIを<br>試してみよう。</h2>
-        <p>稼働確認用の <code>GET /health</code> は今すぐ利用できます。JavaScriptの <code>fetch()</code> を使ってレスポンスを取得できます。</p>
+        <p>公開中の <code>GET /health</code> と <code>GET /api/users</code> を利用できます。JavaScriptの <code>fetch()</code> を使ってレスポンスを取得できます。</p>
         <a class="text-link" href="/health" target="_blank" rel="noopener noreferrer">/health をブラウザで開く <span aria-hidden="true">↗</span></a>
       </div>
       <div class="example-editor">
@@ -82,9 +126,9 @@ console.log(data);
       <div class="section-heading"><div><span class="section-kicker">WHAT'S NEXT</span><h2>開発ロードマップ</h2><p>小さく公開し、動作を確認しながら育てていきます。</p></div></div>
       <div class="roadmap-grid">
         <article class="roadmap-item"><span class="roadmap-step done">01</span><span class="roadmap-state">完了</span><h3>Express + Render</h3><p>最小のWebサーバーと稼働確認APIを公開。</p></article>
-        <article class="roadmap-item"><span class="roadmap-step current">02</span><span class="roadmap-state">実装済み</span><h3>EJSドキュメント</h3><p>共通テンプレートを使ったAPI仕様ページを整備。</p></article>
-        <article class="roadmap-item"><span class="roadmap-step">03</span><span class="roadmap-state">接続設定待ち</span><h3>MongoDB Atlas連携</h3><p>GETエンドポイントは実装済み。Render環境変数とAtlasのIP設定後に接続確認。</p></article>
-        <article class="roadmap-item"><span class="roadmap-step">04</span><span class="roadmap-state">将来検討</span><h3>API機能の拡充</h3><p>検索、OpenAPI、API実行テストなどを段階的に検討。</p></article>
+        <article class="roadmap-item"><span class="roadmap-step done">02</span><span class="roadmap-state">完了</span><h3>EJSドキュメント</h3><p>共通テンプレートを使ったAPI仕様ページを整備。</p></article>
+        <article class="roadmap-item"><span class="roadmap-step done">03</span><span class="roadmap-state">完了</span><h3>MongoDB Atlas連携</h3><p>GET APIと接続テストを実装し、自動監視を設定済み。</p></article>
+        <article class="roadmap-item"><span class="roadmap-step current">04</span><span class="roadmap-state">進行中</span><h3>API機能の拡充</h3><p>ブラウザ上のAPI実行ツールを追加。OpenAPIなどは今後検討。</p></article>
       </div>
     </div>
   </section>
