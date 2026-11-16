@@ -39,6 +39,65 @@
   </section>
 
 
+
+  <section class="section statistics-section" id="statistics" aria-labelledby="statistics-heading">
+    <div class="container">
+      <div class="statistics-panel">
+        <div class="statistics-heading">
+          <span class="section-kicker">API STATISTICS</span>
+          <h2 id="statistics-heading">サービスの概要と利用状況</h2>
+          <p>公開REST APIの実際の利用状況とサービス情報をご紹介します。</p>
+        </div>
+        <div class="statistics-grid">
+          <article class="statistics-card statistics-card-requests">
+            <span class="statistics-icon"><%- icon("health") %></span>
+            <div>
+              <strong class="statistics-value" data-stat-total aria-live="polite">—</strong>
+              <h3>Total API Requests</h3>
+              <p>APIへの累計リクエスト数</p>
+            </div>
+          </article>
+          <article class="statistics-card statistics-card-resources">
+            <span class="statistics-icon"><%- icon("layers") %></span>
+            <div>
+              <strong class="statistics-value"><%= resources.length %></strong>
+              <h3>Public Resources</h3>
+              <p>Users / Todos の公開GET API</p>
+            </div>
+          </article>
+          <article class="statistics-card statistics-card-year">
+            <span class="statistics-icon"><%- icon("calendar") %></span>
+            <div>
+              <strong class="statistics-value">2026</strong>
+              <h3>Since</h3>
+              <p>学習用REST APIとして開発を開始</p>
+            </div>
+          </article>
+        </div>
+        <div class="statistics-url-row">
+          <strong>APIのベースURL</strong>
+          <div class="statistics-url-box">
+            <code data-stat-url>https://ai-workspace-api-327r.onrender.com</code>
+            <button class="statistics-copy" type="button" data-stat-copy aria-label="APIのベースURLをコピー">
+              <%- icon("copy") %><span data-stat-copy-label>コピー</span>
+            </button>
+          </div>
+          <div class="statistics-status">
+            <span><i class="statistics-status-dot" aria-hidden="true"></i> 集計開始: <time data-stat-started>取得中…</time></span>
+            <span><%- icon("health") %> <span data-stat-updated>最新データを取得中…</span></span>
+          </div>
+        </div>
+        <div class="statistics-powered">
+          <span>Powered by</span>
+          <div class="statistics-tech"><%- icon("terminal") %> Express</div>
+          <div class="statistics-tech"><%- icon("database") %> MongoDB Atlas</div>
+          <div class="statistics-tech"><%- icon("cloud") %> Render</div>
+        </div>
+        <p class="statistics-footnote">集計対象はUsers・Todosの公開GETリクエストです。集計開始以前のアクセスは含まれません。数値は約15秒ごとに更新されます。</p>
+      </div>
+    </div>
+  </section>
+
   <section class="section resources-section" id="resources" aria-labelledby="resources-heading">
     <div class="container">
       <div class="section-heading resources-heading">
