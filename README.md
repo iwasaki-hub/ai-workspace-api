@@ -1,5 +1,11 @@
 # AI Workspace API
 
+## 開発記録
+
+- [2026-11-16 開発工程記録（企画・要件定義から初期MVPの接続確認まで）](docs/development/2026-11-16-development-history.md)
+- 公開ページ: https://ai-workspace-api-327r.onrender.com/
+- 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
+
 Node.js + Express + EJS + MongoDB Atlas の学習用REST API。GitHubからRenderへ自動デプロイします。
 
 ## ページとエンドポイント
@@ -44,7 +50,7 @@ Renderの **Environment** に `MONGODB_URI` をSecretとして設定します。
 
 MongoDB AtlasのIP Access Listには、Renderダッシュボードのサービスの **Connect → Outbound** に表示される送信元IP範囲を登録してください。すべてのIPを許可する `0.0.0.0/0` は避けます。
 
-AtlasのMongoDBユーザー `ai_workspace_app` は既存のreadWrite権限ですが、**公開APIはGETのみ**です。さらに安全にするため、将来はこのAPI専用のread権限のユーザーを作成することを推奨します。
+AtlasにはAPI専用の読み取り専用ユーザー `ai_workspace_api_user`（`ai_workspace_db` に `read` 権限）を作成済みです。Renderではこの専用ユーザーのURIを使用してください。既存の `ai_workspace_app` は `readWrite` 権限を持ちますが、公開API用には使用しません。新規DBユーザー名は `_user` で終える命名規則とします。
 
 ## ステータスコード
 
