@@ -4,19 +4,28 @@ const menuButton = document.querySelector(".menu-toggle");
 const navigation = document.querySelector(".primary-nav");
 
 if (menuButton && navigation) {
+  let openedAtScrollY = 0;
+
+  function setMenuOpen(isOpen) {
+    menuButton.setAttribute("aria-expanded", String(isOpen));
+    menuButton.setAttribute("aria-label", isOpen ? "メニューを閉じる" : "メニューを開く");
+    navigation.classList.toggle("is-open", isOpen);
+    if (isOpen) openedAtScrollY = window.scrollY;
+  }
+
   menuButton.addEventListener("click", () => {
-    const isOpen = menuButton.getAttribute("aria-expanded") === "true";
-    menuButton.setAttribute("aria-expanded", String(!isOpen));
-    menuButton.setAttribute("aria-label", isOpen ? "メニューを開く" : "メニューを閉じる");
-    navigation.classList.toggle("is-open", !isOpen);
+    setMenuOpen(menuButton.getAttribute("aria-expanded") !== "true");
   });
 
+  // Close the expanded mobile menu when the page actually moves.
+  // A small tolerance avoids closing it on subpixel scroll adjustments.
+  window.addEventListener("scroll", () => {
+    if (menuButton.getAttribute("aria-expanded") !== "true") return;
+    if (Math.abs(window.scrollY - openedAtScrollY) > 3) setMenuOpen(false);
+  }, { passive: true });
+
   navigation.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", () => {
-      navigation.classList.remove("is-open");
-      menuButton.setAttribute("aria-expanded", "false");
-      menuButton.setAttribute("aria-label", "メニューを開く");
-    });
+    link.addEventListener("click", () => setMenuOpen(false));
   });
 }
 
