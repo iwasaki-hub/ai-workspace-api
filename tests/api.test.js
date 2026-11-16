@@ -44,8 +44,14 @@ function mockCollection(data = fixture, observation = {}) {
   };
 }
 
-async function withApp(run, { provider = async () => mockCollection(), configured = true, rateLimitOptions } = {}) {
-  const server = createApp({ collectionProvider: provider, databaseConfigured: configured, rateLimitOptions }).listen(0, "127.0.0.1");
+const todoFixture = [
+  { _id: new ObjectId(ids[0]), title: "仕様書を確認する", completed: true, demo: true, secret: "not-public" },
+  { _id: new ObjectId(ids[1]), title: "テストを追加する", completed: false, demo: true },
+  { _id: new ObjectId(ids[2]), title: "非公開ToDo", completed: false, demo: false },
+];
+
+async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), configured = true, rateLimitOptions } = {}) {
+  const server = createApp({ collectionProvider: provider, todoCollectionProvider: todoProvider, databaseConfigured: configured, rateLimitOptions }).listen(0, "127.0.0.1");
   try {
     await new Promise((resolve, reject) => {
       if (server.listening) return resolve();
@@ -234,11 +240,11 @@ test("GET /openapi.json is a valid OpenAPI contract matching implemented GET rou
     const spec = await response.json();
     assert.equal(spec.openapi, "3.1.0");
     assert.equal(spec.info.title, "AI Workspace API");
-    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/users", "/api/users/{id}", "/health"]);
+    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
     for (const [path, pathItem] of Object.entries(spec.paths)) {
       assert.deepEqual(Object.keys(pathItem), ["get"], `No write operations in ${path}`);
       assert.ok(pathItem.get.responses["200"]);
-      const url = path === "/api/users/{id}" ? "/api/users/" + ids[0] : path;
+      const url = path.endsWith("/{id}") ? path.replace("/{id}", "/" + ids[0]) : path;
       const actual = await fetch(base + url);
       assert.equal(actual.status, 200, `documented GET ${url}`);
     }
@@ -423,9 +429,9 @@ test("API rate limits do not affect existing 400 validation responses", async ()
 
 test("Resources section lists only implemented public resources below feature cards", async () => {
   const { publicResources } = await import("../ui/resources.js");
-  assert.equal(publicResources.length, 1);
+  assert.equal(publicResources.length, 2);
   assert.ok(Object.isFrozen(publicResources));
-  assert.deepEqual(publicResources.map((resource) => resource.path), ["/api/users"]);
+  assert.deepEqual(publicResources.map((resource) => resource.path), ["/api/users", "/api/todos"]);
   await withApp(async (base) => {
     const response = await fetch(base + "/");
     assert.equal(response.status, 200);
@@ -436,8 +442,8 @@ test("Resources section lists only implemented public resources below feature ca
     assert.match(html, /利用できるリソース/);
     assert.match(html, /href="\/api\/users"[^>]*target="_blank"/);
     assert.match(html, /data-resource-count="\/api\/users"/);
-    assert.match(html, /1 RESOURCES/);
-    assert.doesNotMatch(html, /href="\/api\/(posts|comments|albums|photos|todos)"/);
+    assert.match(html, /2 RESOURCES/);
+    assert.doesNotMatch(html, /href="\/api\/(posts|comments|albums|photos)"/);
     assert.match(html, /src="\/js\/resources\.js"/);
   });
 });
@@ -612,5 +618,93 @@ test("Navigation labels and icons are high-contrast white on desktop and mobile"
     const html = await (await fetch(base + "/")).text();
     assert.match(html, /id="primary-nav" class="primary-nav"/);
     assert.match(html, /href="#overview"/);
+  });
+});
+
+
+test("GET /api/todos returns only public demo fields and excludes non-demo documents", async () => {
+  const observed = {};
+  await withApp(async (base) => {
+    const r = await request(base, "/api/todos");
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body, [
+      { id: ids[0], title: "仕様書を確認する", completed: true },
+      { id: ids[1], title: "テストを追加する", completed: false },
+    ]);
+    assert.deepEqual(observed.filter, { demo: true });
+    assert.deepEqual(observed.options.projection, { title: 1, completed: 1 });
+    assert.equal(observed.limit, 50);
+    assert.deepEqual(observed.sort, { _id: 1 });
+    assert.doesNotMatch(JSON.stringify(r.body), /secret|非公開ToDo/);
+  }, { todoProvider: async () => mockCollection(todoFixture, observed) });
+});
+
+test("GET /api/todos/:id returns public demo todo and rejects hidden or missing records", async () => {
+  const observed = {};
+  await withApp(async (base) => {
+    const r = await request(base, "/api/todos/" + ids[1]);
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body, { id: ids[1], title: "テストを追加する", completed: false });
+    assert.equal(observed.singleFilter.demo, true);
+    assert.equal(observed.singleFilter._id.toHexString(), ids[1]);
+    assert.deepEqual(observed.singleOptions.projection, { title: 1, completed: 1 });
+    for (const id of [ids[2], "aaaaaaaaaaaaaaaaaaaaaaaa"]) {
+      const missing = await request(base, "/api/todos/" + id);
+      assert.equal(missing.status, 404);
+      assert.equal(missing.body.error, "not_found");
+    }
+  }, { todoProvider: async () => mockCollection(todoFixture, observed) });
+});
+
+test("Todos reject invalid IDs without database access and do not permit writes", async () => {
+  await withApp(async (base) => {
+    const invalid = await request(base, "/api/todos/not-an-id");
+    assert.equal(invalid.status, 400);
+    assert.equal(invalid.body.error, "invalid_id");
+    const write = await request(base, "/api/todos", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    assert.equal(write.status, 404);
+    const update = await request(base, "/api/todos/" + ids[0], { method: "DELETE" });
+    assert.equal(update.status, 404);
+  }, { todoProvider: async () => { throw Error("Should not contact DB"); } });
+});
+
+test("Todos return a safe 503 on database error, without revealing secrets", async () => {
+  await withApp(async (base) => {
+    const r = await request(base, "/api/todos");
+    assert.equal(r.status, 503);
+    assert.equal(r.body.error, "service_unavailable");
+    assert.doesNotMatch(JSON.stringify(r.body), /password=/);
+  }, { todoProvider: async () => { throw new Error("password=secret"); } });
+});
+
+test("Todos list caps responses to 50 entries", async () => {
+  const many = Array.from({ length: 56 }, (_, i) => ({
+    _id: new ObjectId(i.toString(16).padStart(24, "0")), title: "タスク" + i, completed: false, demo: true,
+  }));
+  await withApp(async (base) => {
+    const r = await request(base, "/api/todos");
+    assert.equal(r.status, 200);
+    assert.equal(r.body.length, 50);
+  }, { todoProvider: async () => mockCollection(many) });
+});
+
+test("Swagger OpenAPI and homepage document the new todos resource", async () => {
+  const { icon } = await import("../ui/icons.js");
+  assert.match(icon("todo"), /<svg/);
+  await withApp(async (base) => {
+    const html = await (await fetch(base + "/")).text();
+    assert.match(html, /href="\/api\/todos"/);
+    assert.match(html, /data-resource-count="\/api\/todos"/);
+    assert.match(html, /2 RESOURCES/);
+    assert.match(html, /value="todos"/);
+    assert.match(html, /value="todo-id"/);
+    const js = await (await fetch(base + "/js/explorer.js")).text();
+    assert.match(js, /case "todos": return "\/api\/todos"/);
+    assert.match(js, /case "todo-id": return "\/api\/todos\/" \+ id\.value\.trim\(\)/);
+    const spec = await (await fetch(base + "/openapi.json")).json();
+    assert.deepEqual(Object.keys(spec.paths["/api/todos"].get.responses).sort(), ["200", "429", "503"]);
+    assert.deepEqual(Object.keys(spec.paths["/api/todos/{id}"].get.responses).sort(), ["200", "400", "404", "429", "503"]);
+    assert.deepEqual(spec.components.schemas.DemoTodo.required, ["id", "title", "completed"]);
+    assert.equal(spec.components.schemas.DemoTodo.additionalProperties, false);
   });
 });

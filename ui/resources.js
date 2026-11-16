@@ -12,4 +12,12 @@ export const publicResources = Object.freeze([
     countEndpoint: "/api/users",
     maxDisplayedCount: 50,
   }),
+  Object.freeze({
+    path: "/api/todos",
+    label: "ToDo",
+    description: "公開デモToDoの一覧",
+    icon: "todo",
+    countEndpoint: "/api/todos",
+    maxDisplayedCount: 50,
+  }),
 ]);

@@ -97,7 +97,24 @@ async function main() {
     console.log(`PASS GET /api/users?status=${status}`);
   }
 
-  console.log(`SUCCESS: production smoke test passed (users=${users.length}, checks=5)`);
+
+  const todos = await retryReady("GET /api/todos", async () => {
+    const items = await getJson("/api/todos");
+    assert.ok(Array.isArray(items), "todos should be an array");
+    assert.equal(items.length, 5, "five public demo todos were seeded");
+    for (const item of items) {
+      assert.deepEqual(Object.keys(item).sort(), ["completed", "id", "title"]);
+      assert.match(item.id, /^[0-9a-f]{24}$/i);
+      assert.equal(typeof item.title, "string");
+      assert.equal(typeof item.completed, "boolean");
+    }
+    return items;
+  });
+  const todoById = await getJson(`/api/todos/${todos[0].id}`);
+  assert.deepEqual(todoById, todos[0], "todo ID lookup must match selected todo");
+  console.log("PASS GET /api/todos/:id");
+
+  console.log(`SUCCESS: production smoke test passed (users=${users.length}, todos=${todos.length}, checks=7)`);
 }
 
 main().catch((error) => {

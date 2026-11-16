@@ -5,7 +5,7 @@
   <section class="hero" id="overview">
     <div class="container hero-inner">
       <div class="hero-copy">
-        <span class="eyebrow"><span class="eyebrow-dot"></span> API DOCUMENTATION · v0.5</span>
+        <span class="eyebrow"><span class="eyebrow-dot"></span> API DOCUMENTATION · v0.6</span>
         <h1>データとアプリを、<br><span>シンプルにつなぐ。</span></h1>
         <p class="hero-lead">MongoDB Atlas × Express で構築する、学習用REST API。JSONPlaceholderのように、シンプルなURLからJSONデータを利用できる仕組みを目指しています。</p>
         <div class="hero-actions">
@@ -67,7 +67,7 @@
           </article>
         <% }) %>
       </div>
-      <p class="resources-note"><%- icon("info") %> 件数は公開APIの応答をもとに表示します。現行の一覧APIは最大50件を返します。</p>
+      <p class="resources-note"><%- icon("info") %> 件数は公開APIの応答をもとに表示します。各一覧APIは最大50件を返します。</p>
     </div>
   </section>
 
@@ -104,7 +104,7 @@
           </a>
         </div>
       </div>
-      <p class="callout"><strong><%- icon("info") %> Note</strong> <code>/api/users</code> は公開中の読み取り専用APIです。追加・更新・削除のAPIは提供していません。</p>
+      <p class="callout"><strong><%- icon("info") %> Note</strong> <code>/api/users</code> と <code>/api/todos</code> は公開中の読み取り専用APIです。追加・更新・削除のAPIは提供していません。</p>
     </div>
   </section>
 
@@ -123,6 +123,8 @@
           <label for="api-endpoint">エンドポイント</label>
           <select id="api-endpoint" name="endpoint">
             <option value="users">GET /api/users — 一覧</option>
+            <option value="todos">GET /api/todos — ToDo一覧</option>
+            <option value="todo-id">GET /api/todos/:id — ToDo ID検索</option>
             <option value="status">GET /api/users?status= — 状態で検索</option>
             <option value="id">GET /api/users/:id — IDで検索</option>
             <option value="health">GET /health — 稼働確認</option>
