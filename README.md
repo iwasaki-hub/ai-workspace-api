@@ -32,7 +32,7 @@ GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレ�
 
 ## テスト
 
-`npm test` でMongoDBの認証情報不要の回帰テスト（16ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+`npm test` でMongoDBの認証情報不要の回帰テスト（15ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ### 本番スモークテスト
 
