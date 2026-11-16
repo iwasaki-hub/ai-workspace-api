@@ -419,3 +419,75 @@ test("API rate limits do not affect existing 400 validation responses", async ()
     assert.ok(r.headers.get("ratelimit"));
   });
 });
+
+
+test("Resources section lists only implemented public resources below feature cards", async () => {
+  const { publicResources } = await import("../ui/resources.js");
+  assert.equal(publicResources.length, 1);
+  assert.ok(Object.isFrozen(publicResources));
+  assert.deepEqual(publicResources.map((resource) => resource.path), ["/api/users"]);
+  await withApp(async (base) => {
+    const response = await fetch(base + "/");
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.ok(html.indexOf("overview-section") < html.indexOf("resources-section"));
+    assert.ok(html.indexOf("resources-section") < html.indexOf('id="endpoints"'));
+    assert.match(html, /id="resources"/);
+    assert.match(html, /利用できるリソース/);
+    assert.match(html, /href="\/api\/users"[^>]*target="_blank"/);
+    assert.match(html, /data-resource-count="\/api\/users"/);
+    assert.match(html, /1 RESOURCES/);
+    assert.doesNotMatch(html, /href="\/api\/(posts|comments|albums|photos|todos)"/);
+    assert.match(html, /src="\/js\/resources\.js"/);
+  });
+});
+
+test("Resources CSS and shared Font Awesome registry support responsive and accessible links", async () => {
+  const { icon } = await import("../ui/icons.js");
+  assert.match(icon("users"), /<svg/);
+  await withApp(async (base) => {
+    const stylesheet = await fetch(base + "/css/style.css");
+    assert.equal(stylesheet.status, 200);
+    const css = await stylesheet.text();
+    assert.match(css, /\.resource-link:focus-visible/);
+    assert.match(css, /@media\(max-width:390px\)\{\.resource-row/);
+    const script = await fetch(base + "/js/resources.js");
+    assert.equal(script.status, 200);
+    const js = await script.text();
+    assert.match(js, /credentials: "omit"/);
+    assert.match(js, /Array\.isArray\(data\)/);
+    assert.match(js, /取得できません/);
+  });
+});
+
+test("Resource counts show actual public result count, cap notice and error fallback", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const { readFile } = await import("node:fs/promises");
+  const script = await readFile(new URL("../public/js/resources.js", import.meta.url), "utf8");
+  async function renderCount({ data, ok = true, fail = false }) {
+    const counter = { dataset: { resourceCount: "/api/users", resourceMax: "50" }, textContent: "取得中…" };
+    let calls = 0;
+    const sandbox = {
+      document: {
+        querySelector: () => null,
+        querySelectorAll: () => [counter],
+      },
+      fetch: async (endpoint, options) => {
+        calls++;
+        assert.equal(endpoint, "/api/users");
+        assert.equal(options.method, "GET");
+        assert.equal(options.credentials, "omit");
+        if (fail) throw new Error("network failed");
+        return { ok, json: async () => data };
+      },
+      AbortSignal,
+    };
+    await runInNewContext(script + "\nloadResourceCounts()", sandbox);
+    return { text: counter.textContent, calls };
+  }
+  assert.deepEqual(await renderCount({ data: [{ id: 1 }, { id: 2 }, { id: 3 }] }), { text: "3件", calls: 1 });
+  assert.deepEqual(await renderCount({ data: [] }), { text: "0件", calls: 1 });
+  assert.deepEqual(await renderCount({ data: Array.from({ length: 50 }) }), { text: "50件（上限）", calls: 1 });
+  assert.deepEqual(await renderCount({ data: [], ok: false }), { text: "取得できません", calls: 1 });
+  assert.deepEqual(await renderCount({ fail: true }), { text: "取得できません", calls: 1 });
+});
