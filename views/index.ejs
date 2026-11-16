@@ -55,7 +55,22 @@
           </article>
         <% }) %>
       </div>
-      <p class="callout"><strong>OpenAPI</strong> 標準形式の仕様書を <a href="/openapi.json" target="_blank" rel="noopener noreferrer">JSONで確認</a> できます。<a href="/swagger">Swagger UIでAPI仕様を見る</a>。 </p>
+      <div class="openapi-callout" role="group" aria-label="OpenAPI仕様書へのリンク">
+        <div class="openapi-callout-copy">
+          <strong>OpenAPI 3.1</strong>
+          <p>APIの仕様書を標準形式で公開しています。以下のボタンから確認できます。</p>
+        </div>
+        <div class="openapi-callout-actions">
+          <a class="openapi-link openapi-link-primary" href="/swagger">
+            <span class="openapi-link-icon" aria-hidden="true">▤</span>
+            Swagger UIで見る <span aria-hidden="true">↗</span>
+          </a>
+          <a class="openapi-link openapi-link-secondary" href="/openapi.json" target="_blank" rel="noopener noreferrer">
+            <span class="openapi-link-icon" aria-hidden="true">{ }</span>
+            JSON仕様書を見る <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
       <p class="callout"><strong>Note</strong> <code>/api/users</code> は公開中の読み取り専用APIです。追加・更新・削除のAPIは提供していません。</p>
     </div>
   </section>
