@@ -1,37 +1,33 @@
 import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.disable("x-powered-by");
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+app.use(express.static(path.join(__dirname, "public")));
+
+const endpoints = [
+  { method: "GET", path: "/health", description: "APIサーバーの稼働状態を確認します。", available: true },
+  { method: "GET", path: "/api/users", description: "登録済みのデモデータをすべて取得します。", available: false },
+  { method: "GET", path: "/api/users/:id", description: "IDで指定したデモデータを1件取得します。", available: false },
+  { method: "GET", path: "/api/users?status=active", description: "status条件に一致するデモデータを検索します。", available: false },
+];
 
 app.get("/", (_req, res) => {
-  res.type("html").send(`<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Workspace API</title>
-    <style>
-      body { font-family: system-ui, sans-serif; margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f5f8fa; color: #15283b; }
-      main { max-width: 640px; margin: 24px; padding: 40px; background: white; border-radius: 18px; box-shadow: 0 10px 32px #15283b10; }
-      h1 { margin-top: 0; }
-      a { color: #0969a2; }
-      code { background: #eef5f7; padding: 3px 6px; border-radius: 4px; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>AI Workspace API</h1>
-      <p>Express API の初期ページです。MongoDB Atlas との接続と API ドキュメントは今後追加します。</p>
-      <p>稼働確認: <a href="/health"><code>GET /health</code></a></p>
-    </main>
-  </body>
-</html>`);
+  res.render("index", { endpoints });
 });
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "ai-workspace-api" });
+});
+
+app.use("/api", (_req, res) => {
+  res.status(501).json({ error: "not_implemented", message: "このAPIは今後実装予定です。" });
 });
 
 app.listen(port, "0.0.0.0", () => {
