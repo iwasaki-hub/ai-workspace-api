@@ -1,20 +1,20 @@
 <header class="site-header">
   <div class="container header-inner">
     <a class="brand" href="/" aria-label="AI Workspace API ホーム">
-      <span class="brand-mark" aria-hidden="true">{ }</span>
+      <span class="brand-mark" aria-hidden="true"><%- icon("brand") %></span>
       <span>AI Workspace <span class="brand-accent">API</span></span>
     </a>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="メニューを開く">
-      <span></span><span></span><span></span>
+      <%- icon("menu") %>
     </button>
     <nav id="primary-nav" class="primary-nav" aria-label="メインナビゲーション">
-      <a href="#overview">概要</a>
-      <a href="#endpoints">エンドポイント</a>
-      <a href="#try-api">APIを試す</a>
-      <a href="/swagger">Swagger</a>
-      <a href="#examples">使い方</a>
-      <a href="#roadmap">ロードマップ</a>
-      <a class="nav-status" href="/health"><span class="status-dot"></span> Health API</a>
+      <a href="#overview"><%- icon("overview") %> 概要</a>
+      <a href="#endpoints"><%- icon("endpoints") %> エンドポイント</a>
+      <a href="#try-api"><%- icon("playground") %> APIを試す</a>
+      <a href="/swagger"><%- icon("swagger") %> Swagger</a>
+      <a href="#examples"><%- icon("examples") %> 使い方</a>
+      <a href="#roadmap"><%- icon("roadmap") %> ロードマップ</a>
+      <a class="nav-status" href="/health"><%- icon("health") %> Health API</a>
     </nav>
   </div>
 </header>
