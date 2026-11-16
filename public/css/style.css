@@ -75,3 +75,27 @@
 .menu-toggle .ui-icon{font-size:17px}
 @media(max-width:900px){.primary-nav{gap:12px}.primary-nav>a{gap:5px;font-size:12px}}
 @media(max-width:650px){.primary-nav>a{gap:10px}.menu-toggle{align-items:center;justify-content:center}}
+
+
+/* API Resources: consistent with existing cards, typography and palette */
+.resources-section{background:var(--bg);padding-top:82px;padding-bottom:82px}
+.resources-heading{align-items:end}
+.resources-list{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 12px 30px #15243908}
+.resource-row{display:flex;align-items:center;gap:18px;padding:22px 27px}
+.resource-row+.resource-row{border-top:1px solid var(--line)}
+.resource-icon{display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;border-radius:12px;background:#e9f8f4;color:#158a72}
+.resource-icon .ui-icon{font-size:19px}
+.resource-details{flex:1;min-width:0}
+.resource-link{display:inline-flex;align-items:center;gap:10px;color:#285db1;font-size:16px;font-weight:800;text-underline-offset:4px}
+.resource-link code{overflow-wrap:anywhere;font-weight:800}
+.resource-link:hover{color:#163a80;text-decoration:underline}
+.resource-link:focus-visible{outline:3px solid #9ac2ff;outline-offset:4px;border-radius:3px}
+.resource-link .ui-icon{font-size:11px}
+.resource-details p{margin:5px 0 0;font-size:12px;color:var(--muted)}
+.resource-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right;min-width:124px}
+.resource-meta strong{font-size:16px;color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums}
+.resource-meta span{color:var(--muted);font-size:11px}
+.resources-note{display:flex;align-items:flex-start;gap:8px;margin:16px 0 0;color:var(--muted);font-size:12px}
+.resources-note .ui-icon{margin-top:3px;flex-shrink:0}
+@media(max-width:650px){.resources-section{padding-top:64px;padding-bottom:64px}.resource-row{padding:18px 16px;gap:13px;align-items:flex-start}.resource-icon{width:40px;height:40px;flex-basis:40px}.resource-meta{min-width:75px}.resource-meta strong{font-size:13px}.resource-meta span{font-size:10px}.resource-link{font-size:14px;gap:5px}}
+@media(max-width:390px){.resource-row{flex-wrap:wrap}.resource-details{flex-basis:calc(100% - 53px)}.resource-meta{padding-left:53px;width:100%;flex-direction:row;align-items:baseline;justify-content:flex-start;gap:8px;text-align:left}}
