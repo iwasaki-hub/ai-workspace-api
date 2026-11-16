@@ -599,3 +599,18 @@ test("Hamburger menu closes on page scroll and keeps ARIA state synchronized", a
   assert.equal(attributes.get("aria-expanded"), "false");
   assert.equal(classes.has("is-open"), false);
 });
+
+
+test("Navigation labels and icons are high-contrast white on desktop and mobile", async () => {
+  await withApp(async (base) => {
+    const response = await fetch(base + "/css/style.css");
+    assert.equal(response.status, 200);
+    const css = await response.text();
+    assert.match(css, /\.primary-nav>a\{font-size:13px;color:#fff;font-weight:600/);
+    assert.match(css, /\.primary-nav>a \.ui-icon\{font-size:13px;opacity:1\}/);
+    assert.match(css, /\.primary-nav\.is-open\{display:flex\}/);
+    const html = await (await fetch(base + "/")).text();
+    assert.match(html, /id="primary-nav" class="primary-nav"/);
+    assert.match(html, /href="#overview"/);
+  });
+});
