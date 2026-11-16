@@ -10,6 +10,7 @@
         <p class="hero-lead">MongoDB Atlas × Express で構築する、学習用REST API。JSONPlaceholderのように、シンプルなURLからJSONデータを利用できる仕組みを目指しています。</p>
         <div class="hero-actions">
           <a class="button button-primary" href="#endpoints">APIを確認する <span aria-hidden="true">↗</span></a>
+          <a class="button button-secondary" href="/swagger">Swagger UIで見る <span aria-hidden="true">↗</span></a>
           <a class="button button-secondary" href="https://github.com/iwasaki-hub/ai-workspace-api" target="_blank" rel="noopener noreferrer">GitHubを見る <span aria-hidden="true">↗</span></a>
         </div>
         <div class="hero-note"><span class="note-dot"></span> MongoDB接続と公開GET APIの動作確認が完了しています。</div>
@@ -54,6 +55,7 @@
           </article>
         <% }) %>
       </div>
+      <p class="callout"><strong>OpenAPI</strong> 標準形式の仕様書を <a href="/openapi.json" target="_blank" rel="noopener noreferrer">JSONで確認</a> できます。<a href="/swagger">Swagger UIでAPI仕様を見る</a>。 </p>
       <p class="callout"><strong>Note</strong> <code>/api/users</code> は公開中の読み取り専用APIです。追加・更新・削除のAPIは提供していません。</p>
     </div>
   </section>
@@ -128,7 +130,7 @@ console.log(data);
         <article class="roadmap-item"><span class="roadmap-step done">01</span><span class="roadmap-state">完了</span><h3>Express + Render</h3><p>最小のWebサーバーと稼働確認APIを公開。</p></article>
         <article class="roadmap-item"><span class="roadmap-step done">02</span><span class="roadmap-state">完了</span><h3>EJSドキュメント</h3><p>共通テンプレートを使ったAPI仕様ページを整備。</p></article>
         <article class="roadmap-item"><span class="roadmap-step done">03</span><span class="roadmap-state">完了</span><h3>MongoDB Atlas連携</h3><p>GET APIと接続テストを実装し、自動監視を設定済み。</p></article>
-        <article class="roadmap-item"><span class="roadmap-step current">04</span><span class="roadmap-state">進行中</span><h3>API機能の拡充</h3><p>ブラウザ上のAPI実行ツールを追加。OpenAPIなどは今後検討。</p></article>
+        <article class="roadmap-item"><span class="roadmap-step done">04</span><span class="roadmap-state">完了</span><h3>API機能の拡充</h3><p>ブラウザ上のAPI実行ツールとOpenAPI 3.1 / Swagger UIを追加。</p></article>
       </div>
     </div>
   </section>

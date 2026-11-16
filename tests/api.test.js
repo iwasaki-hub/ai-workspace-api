@@ -223,3 +223,63 @@ test("GET /js/explorer.js serves the API explorer client script", async () => {
     assert.doesNotMatch(script, /innerHTML/);
   });
 });
+
+
+test("GET /openapi.json is a valid OpenAPI contract matching implemented GET routes", async () => {
+  const SwaggerParser = (await import("@apidevtools/swagger-parser")).default;
+  await withApp(async (base) => {
+    const response = await fetch(base + "/openapi.json");
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type") || "", /application\/json/);
+    const spec = await response.json();
+    assert.equal(spec.openapi, "3.1.0");
+    assert.equal(spec.info.title, "AI Workspace API");
+    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/users", "/api/users/{id}", "/health"]);
+    for (const [path, pathItem] of Object.entries(spec.paths)) {
+      assert.deepEqual(Object.keys(pathItem), ["get"], `No write operations in ${path}`);
+      assert.ok(pathItem.get.responses["200"]);
+      const url = path === "/api/users/{id}" ? "/api/users/" + ids[0] : path;
+      const actual = await fetch(base + url);
+      assert.equal(actual.status, 200, `documented GET ${url}`);
+    }
+    assert.deepEqual(Object.keys(spec.paths["/api/users"].get.responses).sort(), ["200", "400", "503"]);
+    assert.deepEqual(Object.keys(spec.paths["/api/users/{id}"].get.responses).sort(), ["200", "400", "404", "503"]);
+    assert.deepEqual(spec.paths["/api/users"].get.parameters[0].schema.enum, ["active", "inactive"]);
+    assert.equal(spec.components.schemas.DemoUser.additionalProperties, false);
+    assert.deepEqual(spec.components.schemas.DemoUser.required, ["id", "name", "status", "purpose"]);
+    const validated = await SwaggerParser.validate(spec);
+    assert.equal(validated.openapi, "3.1.0");
+  });
+});
+
+test("GET /swagger serves locally hosted Swagger UI with read-only Try it out", async () => {
+  await withApp(async (base) => {
+    const htmlResponse = await fetch(base + "/swagger");
+    assert.equal(htmlResponse.status, 200);
+    assert.match(htmlResponse.headers.get("content-type") || "", /html/);
+    const html = await htmlResponse.text();
+    assert.match(html, /swagger-ui-bundle\.js/);
+    assert.match(html, /swagger-init\.js/);
+    assert.match(html, /openapi/i);
+    const cssResponse = await fetch(base + "/swagger-assets/swagger-ui.css");
+    assert.equal(cssResponse.status, 200);
+    const bundleResponse = await fetch(base + "/swagger-assets/swagger-ui-bundle.js");
+    assert.equal(bundleResponse.status, 200);
+    const scriptResponse = await fetch(base + "/js/swagger-init.js");
+    assert.equal(scriptResponse.status, 200);
+    const script = await scriptResponse.text();
+    assert.match(script, /url: "\/openapi\.json"/);
+    assert.match(script, /supportedSubmitMethods: \["get"\]/);
+  });
+});
+
+test("GET / documents OpenAPI and Swagger UI without breaking the original homepage", async () => {
+  await withApp(async (base) => {
+    const response = await fetch(base + "/");
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /href="\/swagger"/);
+    assert.match(html, /href="\/openapi\.json"/);
+    assert.match(html, /id="api-explorer-form"/);
+  });
+});

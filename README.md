@@ -7,10 +7,21 @@
 - [2026-11-16 mainブランチ保護の設定と失敗テストによる実地検証](docs/development/2026-11-16-branch-protection.md)
 - [2026-11-16 公開APIのスモークテストと定期自動実行](docs/development/2026-11-16-production-smoke.md)
 - [2026-11-16 ブラウザでAPIを試す機能](docs/development/2026-11-16-api-explorer.md)
+- [2026-11-16 OpenAPI 3.1 / Swagger UI の導入](docs/development/2026-11-16-openapi-swagger.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
 Node.js + Express + EJS + MongoDB Atlas の学習用REST API。GitHubからRenderへ自動デプロイします。
+
+## OpenAPI / Swagger UI
+
+標準形式のOpenAPI 3.1仕様書を `openapi.json` に追加し、URLからも参照できます。
+
+- [Swagger UI（画面でAPI仕様を確認・GET実行）](https://ai-workspace-api-327r.onrender.com/swagger)
+- [OpenAPI JSON（機械可読な仕様書）](https://ai-workspace-api-327r.onrender.com/openapi.json)
+- [従来のEJSドキュメント](https://ai-workspace-api-327r.onrender.com/)
+
+Swagger UIでの操作はGETのみです。APIを追加・変更するときは `openapi.json` とテストを同時に更新してください。
 
 ## ページとエンドポイント
 
@@ -32,7 +43,7 @@ GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレ�
 
 ## テスト
 
-`npm test` でMongoDBの認証情報不要の回帰テスト（15ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+`npm test` でMongoDBの認証情報不要の回帰テスト（18ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ### 本番スモークテスト
 
