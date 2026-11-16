@@ -11,7 +11,7 @@ import {
   faHeartPulse, faCode, faFileCode, faArrowUpRightFromSquare,
   faArrowRight, faPaperPlane, faCopy, faTerminal, faDatabase,
   faLayerGroup, faMagnifyingGlass, faRocket, faChevronLeft,
-  faBars, faCircleInfo, faCircleCheck, faLink, faShieldHalved, faUsers
+  faBars, faCircleInfo, faCircleCheck, faLink, faShieldHalved, faUsers, faListCheck
 } from "@fortawesome/free-solid-svg-icons";
 import { faGithub } from "@fortawesome/free-brands-svg-icons";
 
@@ -32,6 +32,7 @@ export const iconRegistry = Object.freeze({
   terminal: faTerminal,
   database: faDatabase,
   users: faUsers,
+  todo: faListCheck,
   layers: faLayerGroup,
   search: faMagnifyingGlass,
   back: faChevronLeft,
