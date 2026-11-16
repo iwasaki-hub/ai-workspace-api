@@ -196,3 +196,30 @@ test("write operations and unknown endpoints are not available", async () => {
     assert.equal(missing.status, 404);
   });
 });
+
+
+test("GET / includes the interactive read-only API explorer", async () => {
+  await withApp(async (base) => {
+    const response = await fetch(base + "/");
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /id="api-explorer-form"/);
+    assert.match(html, /id="api-endpoint"/);
+    assert.match(html, /id="api-request-path"/);
+    assert.match(html, /id="api-response"/);
+    assert.match(html, /src="\/js\/explorer\.js"/);
+    assert.match(html, /id="try-api"/);
+  });
+});
+
+test("GET /js/explorer.js serves the API explorer client script", async () => {
+  await withApp(async (base) => {
+    const response = await fetch(base + "/js/explorer.js");
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type") || "", /javascript/);
+    const script = await response.text();
+    assert.match(script, /credentials: "omit"/);
+    assert.match(script, /output\.textContent = lastJson/);
+    assert.doesNotMatch(script, /innerHTML/);
+  });
+});

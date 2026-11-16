@@ -6,6 +6,7 @@
 - [2026-11-16 GET APIの正常系・異常系テストと自動化](docs/development/2026-11-16-api-tests.md)
 - [2026-11-16 mainブランチ保護の設定と失敗テストによる実地検証](docs/development/2026-11-16-branch-protection.md)
 - [2026-11-16 公開APIのスモークテストと定期自動実行](docs/development/2026-11-16-production-smoke.md)
+- [2026-11-16 ブラウザでAPIを試す機能](docs/development/2026-11-16-api-explorer.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -25,9 +26,13 @@ GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレ�
 
 **接続が設定されていない場合やAtlasへ到達できない場合、データAPIはHTTP 503を返します。** `/health` が200でもDB接続済みという意味ではありません。
 
+## ブラウザでAPIを試す
+
+公開ページの [APIを試す](https://ai-workspace-api-327r.onrender.com/#try-api) から、GET `/health`、ユーザー一覧、status検索、ID検索をフォーム操作で実行できます。JSON結果は画面内に表示されます。書き込み機能はありません。
+
 ## テスト
 
-`npm test` でMongoDBの認証情報不要の回帰テスト（13ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+`npm test` でMongoDBの認証情報不要の回帰テスト（15ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ### 本番スモークテスト
 
