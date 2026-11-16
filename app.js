@@ -1,4 +1,5 @@
 import express from "express";
+import swaggerUiDist from "swagger-ui-dist";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApiRouter } from "./routes/apiRoutes.js";
@@ -13,6 +14,12 @@ export function createApp({ collectionProvider, databaseConfigured = isDatabaseC
   app.set("view engine", "ejs");
   app.set("views", path.join(__dirname, "views"));
   app.use(express.static(path.join(__dirname, "public")));
+
+  // Serve the OpenAPI contract and bundled Swagger UI assets from this server.
+  app.get("/openapi.json", (_req, res) => res.sendFile(path.join(__dirname, "openapi.json")));
+  app.use("/swagger-assets", express.static(swaggerUiDist.getAbsoluteFSPath(), { index: false }));
+  app.get("/swagger", (_req, res) => res.render("swagger"));
+  app.get("/swagger/", (_req, res) => res.render("swagger"));
 
   app.get("/", (_req, res) => {
     const endpoints = [
