@@ -20,6 +20,8 @@ export function createApp({ collectionProvider, databaseConfigured = isDatabaseC
   // Shared, allowlisted SVG icon renderer for every EJS page.
   app.locals.icon = icon;
   app.use(express.static(path.join(__dirname, "public")));
+  // Serve the installed Motion browser build locally: no CDN or API key required.
+  app.use("/motion-assets", express.static(path.join(__dirname, "node_modules", "motion", "dist"), { index: false }));
 
   // Serve the OpenAPI contract and bundled Swagger UI assets from this server.
   app.get("/openapi.json", (_req, res) => res.sendFile(path.join(__dirname, "openapi.json")));
