@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Workspace API",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "summary": "Read-only demo REST API",
     "description": "MongoDB Atlasから `demo: true` のレコードのみを読み取る学習用公開REST API。書き込みAPIは提供しません。`/health` はMongoDBの接続検証を行いません。"
   },
@@ -20,6 +20,10 @@
     {
       "name": "Users",
       "description": "デモデータ取得"
+    },
+    {
+      "name": "Todos",
+      "description": "公開デモToDoの取得"
     }
   ],
   "security": [],
@@ -256,6 +260,181 @@
           }
         }
       }
+    },
+    "/api/todos": {
+      "get": {
+        "operationId": "listDemoTodos",
+        "tags": [
+          "Todos"
+        ],
+        "summary": "公開デモToDo一覧取得",
+        "description": "`ai_workspace_db.todos`の`demo: true`のみを`_id`昇順で最大50件返します。読み取り専用。HTTP 429のレート制限対象。",
+        "responses": {
+          "200": {
+            "description": "公開デモToDo一覧（最大50件）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 50,
+                  "items": {
+                    "$ref": "#/components/schemas/DemoTodo"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "6afaa9fb021f207d9648f5b1",
+                    "title": "APIの仕様書を確認する",
+                    "completed": true
+                  }
+                ]
+              }
+            }
+          },
+          "429": {
+            "description": "レート制限（同じクライアントから60秒間に120回を超えるAPIリクエスト）",
+            "headers": {
+              "Retry-After": {
+                "description": "再試行までの待機秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "rate_limited",
+                  "message": "リクエストが集中しています。時間をおいて再試行してください。"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DB設定不足または読み取り失敗",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "service_unavailable",
+                  "message": "データを取得できませんでした。時間をおいて再試行してください。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/todos/{id}": {
+      "get": {
+        "operationId": "getDemoTodoById",
+        "tags": [
+          "Todos"
+        ],
+        "summary": "ObjectIdによる公開デモToDo取得",
+        "description": "`demo: true`の一致するレコードを1件取得します。読み取り専用。HTTP 429のレート制限対象。",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "24桁の16進数のMongoDB ObjectId",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            },
+            "example": "6afaa9fb021f207d9648f5b1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "公開デモToDo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoTodo"
+                },
+                "example": {
+                  "id": "6afaa9fb021f207d9648f5b1",
+                  "title": "APIの仕様書を確認する",
+                  "completed": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "IDの形式が不正",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "invalid_id",
+                  "message": "IDは24桁の16進数で指定してください。"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "公開データが見つからない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "not_found",
+                  "message": "指定されたデータは見つかりませんでした。"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "レート制限（同じクライアントから60秒間に120回を超えるAPIリクエスト）",
+            "headers": {
+              "Retry-After": {
+                "description": "再試行までの待機秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "rate_limited",
+                  "message": "リクエストが集中しています。時間をおいて再試行してください。"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DB設定不足または読み取り失敗",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "service_unavailable",
+                  "message": "データを取得できませんでした。時間をおいて再試行してください。"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -331,6 +510,30 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "DemoTodo": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "completed"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{24}$",
+            "description": "MongoDB ObjectIdの文字列表現"
+          },
+          "title": {
+            "type": "string",
+            "description": "ToDoの内容"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "完了状態"
           }
         }
       }
