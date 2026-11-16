@@ -1,0 +1,93 @@
+<%- include("partials/head", {pageTitle: "ドキュメント"}) %>
+<%- include("partials/header") %>
+
+<main>
+  <section class="hero" id="overview">
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <span class="eyebrow"><span class="eyebrow-dot"></span> API DOCUMENTATION · v0.1</span>
+        <h1>データとアプリを、<br><span>シンプルにつなぐ。</span></h1>
+        <p class="hero-lead">MongoDB Atlas × Express で構築する、学習用REST API。JSONPlaceholderのように、シンプルなURLからJSONデータを利用できる仕組みを目指しています。</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#endpoints">APIを確認する <span aria-hidden="true">↗</span></a>
+          <a class="button button-secondary" href="https://github.com/iwasaki-hub/ai-workspace-api" target="_blank" rel="noopener noreferrer">GitHubを見る <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="hero-note"><span class="note-dot"></span> 現在はドキュメント公開段階です。MongoDB連携APIは今後実装します。</div>
+      </div>
+      <div class="hero-visual" aria-label="APIレスポンスのイメージ">
+        <div class="window-bar"><span class="window-dots"><i></i><i></i><i></i></span><span>response.json</span><span class="window-label">PREVIEW</span></div>
+        <div class="code-block preview-code"><span class="code-comment">// Example response (planned)</span>
+<span class="code-text">[</span>
+  <span class="code-text">{</span>
+    <span class="code-key">"id"</span>: <span class="code-string">"example-id"</span>,
+    <span class="code-key">"name"</span>: <span class="code-string">"デモ太郎"</span>,
+    <span class="code-key">"status"</span>: <span class="code-string">"active"</span>
+  <span class="code-text">}</span>
+<span class="code-text">]</span></div>
+        <div class="floating-label"><span aria-hidden="true">✦</span> REST API / JSON</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section overview-section">
+    <div class="container feature-grid">
+      <article class="feature-card"><span class="feature-icon">↗</span><h3>シンプルなREST API</h3><p>わかりやすいエンドポイントと標準的なHTTPメソッド。</p></article>
+      <article class="feature-card"><span class="feature-icon">{ }</span><h3>JSONレスポンス</h3><p>ブラウザ・JavaScript・モバイルアプリから利用できます。</p></article>
+      <article class="feature-card"><span class="feature-icon">◇</span><h3>段階的に拡張</h3><p>まずは読み取り専用APIから。機能は必要に応じて追加します。</p></article>
+    </div>
+  </section>
+
+  <section class="section" id="endpoints">
+    <div class="container">
+      <div class="section-heading"><div><span class="section-kicker">REFERENCE</span><h2>API エンドポイント</h2><p>現在利用可能なものと、今後の実装予定を区別して掲載しています。</p></div><span class="section-count"><%= endpoints.length %> ENDPOINTS</span></div>
+      <div class="endpoint-list">
+        <% endpoints.forEach(endpoint => { %>
+          <article class="endpoint-card">
+            <div class="endpoint-main">
+              <span class="method-badge"><%= endpoint.method %></span>
+              <code class="endpoint-path"><%= endpoint.path %></code>
+              <span class="availability <%= endpoint.available ? 'is-live' : 'is-planned' %>"><%= endpoint.available ? '利用可能' : '実装予定' %></span>
+            </div>
+            <div class="endpoint-detail"><p><%= endpoint.description %></p>
+              <% if (endpoint.available) { %><a href="<%= endpoint.path %>" target="_blank" rel="noopener noreferrer">レスポンスを見る <span aria-hidden="true">↗</span></a><% } %>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+      <p class="callout"><strong>Note</strong> <code>/api/users</code> などのパスは現在の設計案です。実装時に確定します。データの追加・更新・削除APIは初期公開対象外です。</p>
+    </div>
+  </section>
+
+  <section class="section example-section" id="examples">
+    <div class="container example-layout">
+      <div class="example-intro">
+        <span class="section-kicker">QUICK START</span>
+        <h2>まずはAPIを<br>試してみよう。</h2>
+        <p>稼働確認用の <code>GET /health</code> は今すぐ利用できます。JavaScriptの <code>fetch()</code> を使ってレスポンスを取得できます。</p>
+        <a class="text-link" href="/health" target="_blank" rel="noopener noreferrer">/health をブラウザで開く <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="example-editor">
+        <div class="example-tabs"><span class="active-tab">JavaScript</span><button type="button" class="copy-button" data-copy-target="fetch-sample" aria-label="サンプルコードをコピー">コードをコピー <span aria-hidden="true">⧉</span></button></div>
+        <pre id="fetch-sample" class="sample-code"><code>const response = await fetch("/health");
+const data = await response.json();
+
+console.log(data);
+// { status: "ok", service: "ai-workspace-api" }</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section roadmap-section" id="roadmap">
+    <div class="container">
+      <div class="section-heading"><div><span class="section-kicker">WHAT'S NEXT</span><h2>開発ロードマップ</h2><p>小さく公開し、動作を確認しながら育てていきます。</p></div></div>
+      <div class="roadmap-grid">
+        <article class="roadmap-item"><span class="roadmap-step done">01</span><span class="roadmap-state">完了</span><h3>Express + Render</h3><p>最小のWebサーバーと稼働確認APIを公開。</p></article>
+        <article class="roadmap-item"><span class="roadmap-step current">02</span><span class="roadmap-state">現在の段階</span><h3>EJSドキュメント</h3><p>共通テンプレートを使ったAPI仕様ページを整備。</p></article>
+        <article class="roadmap-item"><span class="roadmap-step">03</span><span class="roadmap-state">今後</span><h3>MongoDB Atlas連携</h3><p>デモデータを読み取るGETエンドポイントを追加。</p></article>
+        <article class="roadmap-item"><span class="roadmap-step">04</span><span class="roadmap-state">将来検討</span><h3>API機能の拡充</h3><p>検索、OpenAPI、API実行テストなどを段階的に検討。</p></article>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include("partials/footer") %>
