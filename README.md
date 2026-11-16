@@ -3,6 +3,7 @@
 ## 開発記録
 
 - [2026-11-16 開発工程記録（企画・要件定義から初期MVPの接続確認まで）](docs/development/2026-11-16-development-history.md)
+- [2026-11-16 GET APIの正常系・異常系テストと自動化](docs/development/2026-11-16-api-tests.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -21,6 +22,10 @@ Node.js + Express + EJS + MongoDB Atlas の学習用REST API。GitHubからRende
 GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレコードのみです。返却フィールドは `id`, `name`, `status`, `purpose` のみです。MongoDBの `_id` は文字列の `id` に変換します。書き込み用APIはありません。
 
 **接続が設定されていない場合やAtlasへ到達できない場合、データAPIはHTTP 503を返します。** `/health` が200でもDB接続済みという意味ではありません。
+
+## テスト
+
+`npm test` でMongoDBの認証情報不要の回帰テスト（13ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ## ローカル実行
 
