@@ -283,3 +283,23 @@ test("GET / documents OpenAPI and Swagger UI without breaking the original homep
     assert.match(html, /id="api-explorer-form"/);
   });
 });
+
+
+test("OpenAPI links are clearly styled as actions and remain accessible", async () => {
+  await withApp(async (base) => {
+    const home = await fetch(base + "/");
+    assert.equal(home.status, 200);
+    const html = await home.text();
+    assert.match(html, /class="openapi-callout"/);
+    assert.match(html, /class="openapi-link openapi-link-primary" href="\/swagger"/);
+    assert.match(html, /class="openapi-link openapi-link-secondary" href="\/openapi\.json"/);
+    assert.match(html, /Swagger UIで見る/);
+    assert.match(html, /JSON仕様書を見る/);
+    const css = await fetch(base + "/css/style.css");
+    assert.equal(css.status, 200);
+    const styles = await css.text();
+    assert.match(styles, /\.openapi-link:focus-visible/);
+    assert.match(styles, /\.openapi-link-primary:hover/);
+    assert.match(styles, /\.openapi-callout-actions\{width:100%;flex-direction:column\}/);
+  });
+});
