@@ -540,3 +540,62 @@ test("Motion controller gracefully avoids animation when reduced motion is reque
     document: doc,
   }));
 });
+
+
+test("Hamburger menu closes on page scroll and keeps ARIA state synchronized", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { runInNewContext } = await import("node:vm");
+  const source = await readFile(new URL("../public/js/main.js", import.meta.url), "utf8");
+  const buttonHandlers = {};
+  const scrollHandlers = {};
+  const linkHandlers = {};
+  const attributes = new Map([["aria-expanded", "false"], ["aria-label", "メニューを開く"]]);
+  const classes = new Set();
+  const button = {
+    getAttribute: (name) => attributes.get(name),
+    setAttribute: (name, value) => attributes.set(name, value),
+    addEventListener: (type, handler) => { buttonHandlers[type] = handler; },
+  };
+  const nav = {
+    classList: {
+      toggle: (name, enabled) => enabled ? classes.add(name) : classes.delete(name),
+    },
+    querySelectorAll: () => [{ addEventListener: (type, handler) => { linkHandlers[type] = handler; } }],
+  };
+  const windowMock = {
+    scrollY: 100,
+    addEventListener: (type, handler, options) => { scrollHandlers[type] = { handler, options }; },
+  };
+  const documentMock = {
+    querySelector: (selector) => selector === ".menu-toggle" ? button : nav,
+    querySelectorAll: () => [],
+  };
+  runInNewContext(source, { window: windowMock, document: documentMock });
+  assert.deepEqual(Object.keys(scrollHandlers), ["scroll"]);
+  assert.equal(scrollHandlers.scroll.options.passive, true);
+  buttonHandlers.click();
+  assert.equal(attributes.get("aria-expanded"), "true");
+  assert.equal(attributes.get("aria-label"), "メニューを閉じる");
+  assert.ok(classes.has("is-open"));
+  windowMock.scrollY = 102;
+  scrollHandlers.scroll.handler();
+  assert.ok(classes.has("is-open"), "minor scroll adjustments should not close menu");
+  windowMock.scrollY = 105;
+  scrollHandlers.scroll.handler();
+  assert.equal(attributes.get("aria-expanded"), "false");
+  assert.equal(attributes.get("aria-label"), "メニューを開く");
+  assert.equal(classes.has("is-open"), false);
+
+  // Opening at a different page position should use the new baseline.
+  windowMock.scrollY = 300;
+  buttonHandlers.click();
+  assert.ok(classes.has("is-open"));
+  windowMock.scrollY = 295;
+  scrollHandlers.scroll.handler();
+  assert.equal(classes.has("is-open"), false, "scrolling up also closes the menu");
+
+  buttonHandlers.click();
+  linkHandlers.click();
+  assert.equal(attributes.get("aria-expanded"), "false");
+  assert.equal(classes.has("is-open"), false);
+});
