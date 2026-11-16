@@ -54,3 +54,24 @@
 .openapi-link-icon{font-size:15px;line-height:1;font-weight:900}
 @media(max-width:650px){.openapi-callout{padding:18px 16px;align-items:stretch}.openapi-callout-actions{width:100%;flex-direction:column}.openapi-link{width:100%;justify-content:center}}
 @media(prefers-reduced-motion:reduce){.openapi-link{transition:none}}
+
+
+/* Font Awesome SVG icons — all icon selection lives in ui/icons.js */
+.ui-icon{display:inline-block;width:1em;height:1em;vertical-align:-.125em;flex-shrink:0;fill:currentColor}
+.brand-mark .ui-icon{font-size:16px}
+.primary-nav>a{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.primary-nav>a .ui-icon{font-size:13px;opacity:.9}
+.primary-nav .nav-status .ui-icon{color:var(--mint);font-size:13px}
+.hero-actions .button .ui-icon,.openapi-link .ui-icon{font-size:13px}
+.feature-icon .ui-icon{font-size:20px}
+.floating-label .ui-icon{color:#2ca994}
+.endpoint-detail a .ui-icon,.text-link .ui-icon{font-size:11px}
+.openapi-link-icon .ui-icon{font-size:16px}
+.callout .ui-icon{font-size:12px;margin-right:4px}
+.explorer-submit .ui-icon{font-size:13px}
+.copy-button .ui-icon{margin-right:4px}
+.footer-links a{display:inline-flex;align-items:center;gap:7px}
+.footer-links .ui-icon{font-size:12px}
+.menu-toggle .ui-icon{font-size:17px}
+@media(max-width:900px){.primary-nav{gap:12px}.primary-nav>a{gap:5px;font-size:12px}}
+@media(max-width:650px){.primary-nav>a{gap:10px}.menu-toggle{align-items:center;justify-content:center}}

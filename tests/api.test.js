@@ -303,3 +303,53 @@ test("OpenAPI links are clearly styled as actions and remain accessible", async 
     assert.match(styles, /\.openapi-callout-actions\{width:100%;flex-direction:column\}/);
   });
 });
+
+
+test("Font Awesome icons are rendered server-side from a single allowlisted registry", async () => {
+  const { icon, iconRegistry } = await import("../ui/icons.js");
+  assert.ok(Object.isFrozen(iconRegistry));
+  assert.equal(icon("github"), icon("github"), "rendered icons are cached");
+  assert.match(icon("github"), /<svg[^>]*class="[^"]*ui-icon/);
+  assert.match(icon("github"), /aria-hidden="true"/);
+  assert.match(icon("github"), /<path/);
+  assert.throws(() => icon("not-registered"), /Unknown Font Awesome icon key/);
+  assert.throws(() => icon("__proto__"), /Unknown Font Awesome icon key/);
+});
+
+test("Home and navigation render Font Awesome SVG icons without CDN or duplicate icon definitions", async () => {
+  await withApp(async (base) => {
+    const response = await fetch(base);
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /class="[^"]*ui-icon/);
+    assert.match(html, /aria-hidden="true"/);
+    assert.match(html, /href="#overview"[^>]*>\s*<svg/);
+    assert.match(html, /href="#try-api"[^>]*>\s*<svg/);
+    assert.match(html, /href="\/swagger"[^>]*>\s*<svg/);
+    assert.match(html, /class="openapi-link openapi-link-primary" href="\/swagger"/);
+    assert.match(html, /class="feature-icon"><svg/);
+    assert.match(html, /data-copy-label/);
+    assert.match(html, /data-response-copy-label/);
+    assert.doesNotMatch(html, /kit\.fontawesome\.com|cdnjs\.cloudflare\.com\/ajax\/libs\/font-awesome/);
+  });
+});
+
+test("Swagger and footer render shared icons and CSS includes responsive icon rules", async () => {
+  await withApp(async (base) => {
+    const swagger = await fetch(base + "/swagger");
+    assert.equal(swagger.status, 200);
+    const html = await swagger.text();
+    assert.match(html, /class="swagger-header"/);
+    assert.match(html, /<svg[^>]*ui-icon/);
+    const stylesheet = await fetch(base + "/css/style.css");
+    assert.equal(stylesheet.status, 200);
+    const css = await stylesheet.text();
+    assert.match(css, /\.ui-icon\{display:inline-block/);
+    assert.match(css, /\.primary-nav>a\{display:inline-flex/);
+    assert.match(css, /\.menu-toggle \.ui-icon/);
+    const copyScript = await (await fetch(base + "/js/main.js")).text();
+    assert.match(copyScript, /querySelector\("\[data-copy-label\]"\)/);
+    const explorerScript = await (await fetch(base + "/js/explorer.js")).text();
+    assert.match(explorerScript, /copyLabel\.textContent/);
+  });
+});

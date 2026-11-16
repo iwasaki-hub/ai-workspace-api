@@ -13,6 +13,7 @@ if (form) {
   const elapsed = document.getElementById("api-response-time");
   const send = document.getElementById("api-send");
   const copy = document.getElementById("api-copy-response");
+  const copyLabel = copy.querySelector("[data-response-copy-label]");
   let lastJson = "";
 
   function requestPath() {
@@ -89,10 +90,10 @@ if (form) {
     if (!lastJson) return;
     try {
       await navigator.clipboard.writeText(lastJson);
-      copy.textContent = "コピーしました ✓";
+      copyLabel.textContent = "コピーしました ✓";
     } catch {
-      copy.textContent = "コピーできませんでした";
+      copyLabel.textContent = "コピーできませんでした";
     }
-    setTimeout(() => { copy.textContent = "JSONをコピー"; }, 1800);
+    setTimeout(() => { copyLabel.textContent = "JSONをコピー"; }, 1800);
   });
 }
