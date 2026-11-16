@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Workspace API",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "summary": "Read-only demo REST API",
     "description": "MongoDB Atlasから `demo: true` のレコードのみを読み取る学習用公開REST API。書き込みAPIは提供しません。`/health` はMongoDBの接続検証を行いません。"
   },
@@ -24,6 +24,10 @@
     {
       "name": "Todos",
       "description": "公開デモToDoの取得"
+    },
+    {
+      "name": "Statistics",
+      "description": "API利用状況（書き込み不可）"
     }
   ],
   "security": [],
@@ -435,6 +439,69 @@
           }
         }
       }
+    },
+    "/api/stats": {
+      "get": {
+        "operationId": "getApiStatistics",
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "API利用状況（集計開始後の累計）",
+        "description": "公開Users/TodosのGETリクエストを、MongoDBに保存された運用カウンターから取得します。集計開始以前や429などレート制限で拒否されたリクエスト、ヘルスチェック、統計取得自身は含みません。値は運用上の参考値であり、厳密な課金・請求用ではありません。",
+        "responses": {
+          "200": {
+            "description": "累計リクエストと集計開始日時",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiStatistics"
+                },
+                "example": {
+                  "totalRequests": 0,
+                  "startedAt": "2026-11-16T11:00:00.000Z"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "レート制限（同じクライアントから60秒間に120回を超えるAPIリクエスト）",
+            "headers": {
+              "Retry-After": {
+                "description": "再試行までの待機秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "rate_limited",
+                  "message": "リクエストが集中しています。時間をおいて再試行してください。"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DB設定不足または読み取り失敗",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "service_unavailable",
+                  "message": "データを取得できませんでした。時間をおいて再試行してください。"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -534,6 +601,26 @@
           "completed": {
             "type": "boolean",
             "description": "完了状態"
+          }
+        }
+      },
+      "ApiStatistics": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "totalRequests",
+          "startedAt"
+        ],
+        "properties": {
+          "totalRequests": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "集計開始後の公開GET API累計（ベストエフォート）"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "集計開始時刻（UTC）"
           }
         }
       }
