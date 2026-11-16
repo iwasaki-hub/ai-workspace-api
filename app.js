@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApiRouter } from "./routes/apiRoutes.js";
 import { isDatabaseConfigured } from "./config/database.js";
+import { icon } from "./ui/icons.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,6 +14,8 @@ export function createApp({ collectionProvider, databaseConfigured = isDatabaseC
   app.disable("x-powered-by");
   app.set("view engine", "ejs");
   app.set("views", path.join(__dirname, "views"));
+  // Shared, allowlisted SVG icon renderer for every EJS page.
+  app.locals.icon = icon;
   app.use(express.static(path.join(__dirname, "public")));
 
   // Serve the OpenAPI contract and bundled Swagger UI assets from this server.
