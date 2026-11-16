@@ -45,7 +45,7 @@
 
   // One-time viewport reveals; no hidden placeholders before JS runs.
   const revealTargets = document.querySelectorAll(
-    ".feature-card, .resources-heading, .resource-row, #endpoints .section-heading, " +
+    ".feature-card, .statistics-heading, .statistics-card, .statistics-url-row, .statistics-powered, .resources-heading, .resource-row, #endpoints .section-heading, " +
     ".endpoint-card, .openapi-callout, #try-api .section-heading, .explorer-grid, " +
     ".example-intro, .example-editor, .roadmap-section .section-heading, .roadmap-item",
   );
@@ -63,7 +63,7 @@
   // Hover feedback only on devices that actually support hovering.
   if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
     const hoverTargets = document.querySelectorAll(
-      ".feature-card, .resource-row, .roadmap-item, .hero-actions .button, " +
+      ".feature-card, .statistics-card, .resource-row, .roadmap-item, .hero-actions .button, " +
       ".openapi-link, .explorer-submit",
     );
     hoverTargets.forEach((element) => {
@@ -84,7 +84,7 @@
   // Stop custom transforms immediately if the user enables reduced motion.
   reduceMotion.addEventListener?.("change", (event) => {
     if (!event.matches) return;
-    document.querySelectorAll(".feature-card, .resource-row, .roadmap-item, " +
+    document.querySelectorAll(".feature-card, .statistics-card, .resource-row, .roadmap-item, " +
       ".hero-actions .button, .openapi-link, .explorer-submit").forEach((element) => {
       element.style.removeProperty("transform");
       element.style.removeProperty("opacity");

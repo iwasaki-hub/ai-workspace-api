@@ -15,6 +15,7 @@
 - [2026-11-16 MotionによるUIアニメーション追加](docs/development/2026-11-16-motion-ui.md)
 - [2026-11-16 モバイルメニューのスクロール時自動クローズ](docs/development/2026-11-16-mobile-menu-scroll.md)
 - [2026-11-16 Todosリソース追加](docs/development/2026-11-16-todos-resource.md)
+- [2026-11-16 API統計のリアルタイム表示](docs/development/2026-11-16-live-api-statistics.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -23,6 +24,12 @@ Node.js + Express + EJS + MongoDB Atlas の学習用REST API。GitHubからRende
 ## UIアニメーション
 
 公式npmパッケージ `motion` を使い、スクロール時の表示やカード・ボタンの控えめなアニメーションを追加しています。すべての動きは `public/js/animations.js` で一元管理し、動きを減らすユーザー設定を尊重します。既存デザインとEJS構造はそのままです。
+
+## API Statistics
+
+トップページに、集計開始後の累計GETリクエスト数・公開リソース数・開始年を表示します。APIのベースURLコピーと技術スタックの紹介も追加しました。累計数はMongoDB Atlasの`api_metrics`へ保存し、`GET /api/stats`で取得します。ブラウザは表示中のみ約15秒間隔で更新します（`/api/stats`自体はカウント対象外）。集計はベストエフォートで、障害時などの欠落の可能性があります。
+
+統計専用の接続には環境変数`MONGODB_METRICS_URI`を使用し、従来の`MONGODB_URI`は読み取り専用のままです。詳細は[開発記録](docs/development/2026-11-16-live-api-statistics.md)をご確認ください。
 
 ## アイコンの管理
 
@@ -49,6 +56,7 @@ Swagger UIでの操作はGETのみです。APIを追加・変更するときは 
 | GET | `/api/users/:id` | 指定したデモデータを1件取得 |
 | GET | `/api/todos` | 公開デモToDoを最大50件取得 |
 | GET | `/api/todos/:id` | ObjectIdで公開デモToDoを1件取得 |
+| GET | `/api/stats` | 累計APIリクエスト数・集計開始日時の取得 |
 
 GET APIは `ai_workspace_db.connection_test` と `ai_workspace_db.todos` の `demo: true` のレコードのみを返します。ユーザーの返却フィールドは `id`, `name`, `status`, `purpose`、ToDoは `id`, `title`, `completed` のみです。MongoDBの `_id` は文字列の `id` に変換します。書き込み用APIはありません。
 
@@ -72,7 +80,7 @@ GET APIは `ai_workspace_db.connection_test` と `ai_workspace_db.todos` の `de
 
 ### 本番スモークテスト
 
-GitHub Actionsの `Production API Smoke Test`（Users・Todos合計7項目）が、`main` へのpush・毎日09:00 JST・手動実行で公開GET APIの応答を検証します。MongoDB認証情報は使用せず、Renderの公開エンドポイントにアクセスします。
+GitHub Actionsの `Production API Smoke Test`（Users・Todos・統計の合計8項目）が、`main` へのpush・毎日09:00 JST・手動実行で公開GET APIの応答を検証します。MongoDB認証情報は使用せず、Renderの公開エンドポイントにアクセスします。
 
 ```bash
 node scripts/smoke-test.mjs
@@ -95,6 +103,7 @@ npm start
 
 - `MONGODB_URI`：MongoDB Atlasの接続URI（データベース用ユーザーの認証情報を含む）
 - `MONGODB_DB`：データベース名。省略すると `ai_workspace_db`
+- `MONGODB_METRICS_URI`：統計用の別MongoDBユーザー接続URI（API用読み取り専用ユーザーとは分離）
 
 ## Renderの設定
 
