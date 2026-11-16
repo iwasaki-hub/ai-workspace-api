@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --test tests/api.test.js"
   },
   "dependencies": {
     "express": "^5.1.0",
