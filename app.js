@@ -7,10 +7,11 @@ import { isDatabaseConfigured } from "./config/database.js";
 import { icon } from "./ui/icons.js";
 import { publicResources } from "./ui/resources.js";
 import { applySecurityHeaders, createApiRateLimiter } from "./middleware/security.js";
+import { createMetricsHandlers } from "./middleware/metrics.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function createApp({ collectionProvider, todoCollectionProvider, databaseConfigured = isDatabaseConfigured(), rateLimitOptions } = {}) {
+export function createApp({ collectionProvider, todoCollectionProvider, metricsCollectionProvider, databaseConfigured = isDatabaseConfigured(), rateLimitOptions } = {}) {
   const app = express();
 
   app.disable("x-powered-by");
@@ -45,7 +46,10 @@ export function createApp({ collectionProvider, todoCollectionProvider, database
     res.json({ status: "ok", service: "ai-workspace-api" });
   });
 
+  const { trackRequest, getStats } = createMetricsHandlers(metricsCollectionProvider);
   app.use("/api", createApiRateLimiter(rateLimitOptions));
+  app.get("/api/stats", getStats);
+  app.use("/api", trackRequest);
   app.use("/api", createApiRouter(collectionProvider, todoCollectionProvider));
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "not_found", message: "APIエンドポイントが見つかりません。" });
