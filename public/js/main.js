@@ -24,14 +24,15 @@ document.querySelectorAll("[data-copy-target]").forEach((button) => {
   button.addEventListener("click", async () => {
     const source = document.getElementById(button.dataset.copyTarget);
     if (!source) return;
-    const original = button.textContent;
+    const label = button.querySelector("[data-copy-label]") || button;
+    const original = label.textContent;
 
     try {
       await navigator.clipboard.writeText(source.textContent.trim());
-      button.textContent = "コピーしました ✓";
+      label.textContent = "コピーしました ✓";
     } catch {
-      button.textContent = "コピーできませんでした";
+      label.textContent = "コピーできませんでした";
     }
-    setTimeout(() => { button.textContent = original; }, 1800);
+    setTimeout(() => { label.textContent = original; }, 1800);
   });
 });
