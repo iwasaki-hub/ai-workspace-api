@@ -491,3 +491,52 @@ test("Resource counts show actual public result count, cap notice and error fall
   assert.deepEqual(await renderCount({ data: [], ok: false }), { text: "取得できません", calls: 1 });
   assert.deepEqual(await renderCount({ fail: true }), { text: "取得できません", calls: 1 });
 });
+
+
+test("Motion is installed and its browser bundle is served locally", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  assert.equal(pkg.dependencies.motion, "14.14.0");
+  await withApp(async (base) => {
+    const r = await fetch(base + "/motion-assets/motion.js");
+    assert.equal(r.status, 200, "Motion browser bundle must exist in installed npm package");
+    assert.match(r.headers.get("content-type") || "", /javascript/);
+    const source = await r.text();
+    assert.ok(source.length > 2000);
+  });
+});
+
+test("Homepage loads Motion and centralized animations without breaking existing UI", async () => {
+  await withApp(async (base) => {
+    const r = await fetch(base + "/");
+    assert.equal(r.status, 200);
+    const html = await r.text();
+    assert.match(html, /src="\/motion-assets\/motion\.js" defer/);
+    assert.match(html, /src="\/js\/animations\.js" defer/);
+    assert.ok(html.indexOf("/motion-assets/motion.js") < html.indexOf("/js/animations.js"));
+    assert.match(html, /id="resources"/);
+    assert.match(html, /id="api-explorer-form"/);
+    const js = await fetch(base + "/js/animations.js");
+    assert.equal(js.status, 200);
+    const source = await js.text();
+    assert.match(source, /window\.Motion/);
+    assert.match(source, /motion\.inView/);
+    assert.match(source, /prefers-reduced-motion: reduce/);
+    assert.match(source, /pointerenter/);
+  });
+});
+
+test("Motion controller gracefully avoids animation when reduced motion is requested or library is absent", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { runInNewContext } = await import("node:vm");
+  const js = await readFile(new URL("../public/js/animations.js", import.meta.url), "utf8");
+  const doc = { querySelectorAll: () => { throw new Error("DOM should not be inspected"); } };
+  assert.doesNotThrow(() => runInNewContext(js, {
+    window: { matchMedia: () => ({ matches: true }) },
+    document: doc,
+  }));
+  assert.doesNotThrow(() => runInNewContext(js, {
+    window: { matchMedia: () => ({ matches: false }), Motion: undefined },
+    document: doc,
+  }));
+});
