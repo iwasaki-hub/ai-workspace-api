@@ -15,7 +15,10 @@
     "express": "^5.1.0",
     "ejs": "^3.1.10",
     "mongodb": "^6.20.0",
-    "swagger-ui-dist": "5.35.0"
+    "swagger-ui-dist": "5.35.0",
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@fortawesome/free-brands-svg-icons": "^7.1.0"
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "13.1.0"
