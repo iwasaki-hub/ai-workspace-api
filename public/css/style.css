@@ -37,3 +37,20 @@
 .explorer-output{white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;font-size:12px;line-height:1.8;padding:20px;margin:0;min-height:230px;max-height:480px;flex:1}
 .explorer-response-foot .copy-button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:650px){.explorer-grid{grid-template-columns:1fr}.explorer-controls{padding:20px}.explorer-output{min-height:200px}}
+
+
+/* Clear, accessible OpenAPI navigation actions */
+.openapi-callout{margin:25px 0 0;padding:22px 24px;border:1px solid #dbe5f2;border-left:4px solid #4266e6;border-radius:12px;background:#f2f6fb;display:flex;flex-wrap:wrap;gap:18px 30px;align-items:center;justify-content:space-between}
+.openapi-callout-copy{flex:1 1 230px;min-width:0}
+.openapi-callout-copy strong{font-size:14px;font-weight:800;color:#264b93}
+.openapi-callout-copy p{margin:4px 0 0;color:#546b86;font-size:12px;line-height:1.7}
+.openapi-callout-actions{display:flex;flex-wrap:wrap;gap:10px}
+.openapi-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 15px;border-radius:9px;font-size:12px;font-weight:800;line-height:1.45;text-decoration:none;transition:background-color .15s,border-color .15s,transform .15s}
+.openapi-link-primary{color:#fff;background:#365bca;border:1px solid #365bca}
+.openapi-link-primary:hover{color:#fff;background:#2446aa;border-color:#2446aa}
+.openapi-link-secondary{color:#254b95;background:#fff;border:1px solid #9eb5e8}
+.openapi-link-secondary:hover{background:#e5eeff;border-color:#5176ce}
+.openapi-link:focus-visible{outline:3px solid #173c9b;outline-offset:3px}
+.openapi-link-icon{font-size:15px;line-height:1;font-weight:900}
+@media(max-width:650px){.openapi-callout{padding:18px 16px;align-items:stretch}.openapi-callout-actions{width:100%;flex-direction:column}.openapi-link{width:100%;justify-content:center}}
+@media(prefers-reduced-motion:reduce){.openapi-link{transition:none}}
