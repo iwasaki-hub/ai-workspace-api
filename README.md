@@ -4,6 +4,7 @@
 
 - [2026-11-16 開発工程記録（企画・要件定義から初期MVPの接続確認まで）](docs/development/2026-11-16-development-history.md)
 - [2026-11-16 GET APIの正常系・異常系テストと自動化](docs/development/2026-11-16-api-tests.md)
+- [2026-11-16 mainブランチ保護の設定と失敗テストによる実地検証](docs/development/2026-11-16-branch-protection.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
