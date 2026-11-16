@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { getUserById, listUsers } from "../controllers/userController.js";
+import { createUserHandlers } from "../controllers/userController.js";
 
-const router = Router();
+export function createApiRouter(collectionProvider) {
+  const router = Router();
+  const { listUsers, getUserById } = createUserHandlers(collectionProvider);
 
-// Public read-only demo endpoints. Do not add write routes without authentication.
-router.get("/users", listUsers);
-router.get("/users/:id", getUserById);
+  // Public read-only demo endpoints. Do not add write routes without authentication.
+  router.get("/users", listUsers);
+  router.get("/users/:id", getUserById);
 
-export default router;
+  return router;
+}
