@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createApiRouter } from "./routes/apiRoutes.js";
 import { isDatabaseConfigured } from "./config/database.js";
 import { icon } from "./ui/icons.js";
+import { publicResources } from "./ui/resources.js";
 import { applySecurityHeaders, createApiRateLimiter } from "./middleware/security.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,7 +34,7 @@ export function createApp({ collectionProvider, databaseConfigured = isDatabaseC
       { method: "GET", path: "/api/users/:id", description: "IDで指定したデモデータを1件取得します。", available: databaseConfigured },
       { method: "GET", path: "/api/users?status=active", description: "status条件に一致するデモデータを検索します。", available: databaseConfigured },
     ];
-    res.render("index", { endpoints, configured: databaseConfigured });
+    res.render("index", { endpoints, resources: publicResources, configured: databaseConfigured });
   });
 
   app.get("/health", (_req, res) => {

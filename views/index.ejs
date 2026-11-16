@@ -38,6 +38,39 @@
     </div>
   </section>
 
+
+  <section class="section resources-section" id="resources" aria-labelledby="resources-heading">
+    <div class="container">
+      <div class="section-heading resources-heading">
+        <div>
+          <span class="section-kicker">API RESOURCES</span>
+          <h2 id="resources-heading">利用できるリソース</h2>
+          <p>公開APIから取得できるデモデータです。リソース名を選択するとJSONを確認できます。</p>
+        </div>
+        <span class="section-count"><%= resources.length %> RESOURCES</span>
+      </div>
+      <div class="resources-list">
+        <% resources.forEach(resource => { %>
+          <article class="resource-row">
+            <span class="resource-icon" aria-hidden="true"><%- icon(resource.icon) %></span>
+            <div class="resource-details">
+              <a class="resource-link" href="<%= resource.path %>" target="_blank" rel="noopener noreferrer">
+                <code><%= resource.path %></code>
+                <%- icon("external") %>
+              </a>
+              <p><%= resource.description %></p>
+            </div>
+            <div class="resource-meta">
+              <strong data-resource-count="<%= resource.countEndpoint %>" data-resource-max="<%= resource.maxDisplayedCount %>" aria-live="polite">取得中…</strong>
+              <span>公開一覧の表示件数</span>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+      <p class="resources-note"><%- icon("info") %> 件数は公開APIの応答をもとに表示します。現行の一覧APIは最大50件を返します。</p>
+    </div>
+  </section>
+
   <section class="section" id="endpoints">
     <div class="container">
       <div class="section-heading"><div><span class="section-kicker">REFERENCE</span><h2>API エンドポイント</h2><p>利用できるGET APIを紹介しています。</p></div><span class="section-count"><%= endpoints.length %> ENDPOINTS</span></div>

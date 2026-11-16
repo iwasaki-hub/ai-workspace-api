@@ -11,6 +11,7 @@
 - [2026-11-16 OpenAPIリンクの視認性改善](docs/development/2026-11-16-openapi-link-visibility.md)
 - [2026-11-16 Font Awesomeアイコンの一元管理](docs/development/2026-11-16-fontawesome-icons.md)
 - [2026-11-16 公開APIのセキュリティ強化](docs/development/2026-11-16-api-security.md)
+- [2026-11-16 利用できるリソースのセクション追加](docs/development/2026-11-16-resources-section.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -44,6 +45,10 @@ GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレ�
 
 **接続が設定されていない場合やAtlasへ到達できない場合、データAPIはHTTP 503を返します。** `/health` が200でもDB接続済みという意味ではありません。
 
+## 利用できるリソース
+
+トップページの[Resources](https://ai-workspace-api-327r.onrender.com/#resources)に、現在公開されている `/api/users` のリンクと公開一覧の表示件数を掲載しています。リソースの表示定義は `ui/resources.js` に一元管理しており、実装済みのGET APIが増えたときに拡張できます。現在は最大50件の表示件数を示します。
+
 ## ブラウザでAPIを試す
 
 公開ページの [APIを試す](https://ai-workspace-api-327r.onrender.com/#try-api) から、GET `/health`、ユーザー一覧、status検索、ID検索をフォーム操作で実行できます。JSON結果は画面内に表示されます。書き込み機能はありません。
@@ -54,7 +59,7 @@ GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレ�
 
 ## テスト
 
-`npm test` でMongoDBの認証情報不要の回帰テスト（27ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+`npm test` でMongoDBの認証情報不要の回帰テスト（30ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ### 本番スモークテスト
 
