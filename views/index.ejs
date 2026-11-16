@@ -113,7 +113,7 @@
         <div class="explorer-response" aria-label="APIの実行結果">
           <div class="explorer-response-head"><strong>レスポンス</strong><span id="api-http-status" class="explorer-status" aria-live="polite">未実行</span></div>
           <pre class="explorer-output" id="api-response" tabindex="0" aria-live="polite">「リクエストを送信」を押すと、JSONがここに表示されます。</pre>
-          <div class="explorer-response-foot"><span id="api-response-time">—</span><button type="button" id="api-copy-response" class="copy-button" disabled>JSONをコピー</button></div>
+          <div class="explorer-response-foot"><span id="api-response-time">—</span><button type="button" id="api-copy-response" class="copy-button" disabled><%- icon("copy") %> <span data-response-copy-label>JSONをコピー</span></button></div>
         </div>
       </div>
     </div>
@@ -128,7 +128,7 @@
         <a class="text-link" href="/health" target="_blank" rel="noopener noreferrer"><%- icon("health") %> /health をブラウザで開く <%- icon("external") %></a>
       </div>
       <div class="example-editor">
-        <div class="example-tabs"><span class="active-tab">JavaScript</span><button type="button" class="copy-button" data-copy-target="fetch-sample" aria-label="サンプルコードをコピー"><%- icon("copy") %> コードをコピー</button></div>
+        <div class="example-tabs"><span class="active-tab">JavaScript</span><button type="button" class="copy-button" data-copy-target="fetch-sample" aria-label="サンプルコードをコピー"><%- icon("copy") %> <span data-copy-label>コードをコピー</span></button></div>
         <pre id="fetch-sample" class="sample-code"><code>const response = await fetch("/health");
 const data = await response.json();
 
