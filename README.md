@@ -13,6 +13,7 @@
 - [2026-11-16 公開APIのセキュリティ強化](docs/development/2026-11-16-api-security.md)
 - [2026-11-16 利用できるリソースのセクション追加](docs/development/2026-11-16-resources-section.md)
 - [2026-11-16 MotionによるUIアニメーション追加](docs/development/2026-11-16-motion-ui.md)
+- [2026-11-16 モバイルメニューのスクロール時自動クローズ](docs/development/2026-11-16-mobile-menu-scroll.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -64,7 +65,7 @@ GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレ�
 
 ## テスト
 
-`npm test` でMongoDBの認証情報不要の回帰テスト（33ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+`npm test` でMongoDBの認証情報不要の回帰テスト（34ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ### 本番スモークテスト
 
