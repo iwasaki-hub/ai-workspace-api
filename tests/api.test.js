@@ -50,8 +50,29 @@ const todoFixture = [
   { _id: new ObjectId(ids[2]), title: "非公開ToDo", completed: false, demo: false },
 ];
 
-async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), configured = true, rateLimitOptions } = {}) {
-  const server = createApp({ collectionProvider: provider, todoCollectionProvider: todoProvider, databaseConfigured: configured, rateLimitOptions }).listen(0, "127.0.0.1");
+function mockMetricsCollection(initial = 0) {
+  const state = { total: initial };
+  const collection = {
+    async findOne(query, options) {
+      assert.deepEqual(query, { _id: "public-api" });
+      assert.ok(options.projection);
+      return { total: state.total, startedAt: "2026-11-16T11:00:00.000Z" };
+    },
+    async updateOne(query, update, options) {
+      assert.deepEqual(query, { _id: "public-api" });
+      assert.deepEqual(update, { $inc: { total: 1 } });
+      assert.equal(options.upsert, false);
+      state.total += 1;
+      return { modifiedCount: 1 };
+    },
+  };
+  return { state, collection };
+}
+
+async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), metricsProvider, configured = true, rateLimitOptions } = {}) {
+  const { collection: metricsCollection } = mockMetricsCollection();
+  const statsProvider = metricsProvider || (async () => metricsCollection);
+  const server = createApp({ collectionProvider: provider, todoCollectionProvider: todoProvider, metricsCollectionProvider: statsProvider, databaseConfigured: configured, rateLimitOptions }).listen(0, "127.0.0.1");
   try {
     await new Promise((resolve, reject) => {
       if (server.listening) return resolve();
@@ -240,7 +261,7 @@ test("GET /openapi.json is a valid OpenAPI contract matching implemented GET rou
     const spec = await response.json();
     assert.equal(spec.openapi, "3.1.0");
     assert.equal(spec.info.title, "AI Workspace API");
-    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
+    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/stats", "/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
     for (const [path, pathItem] of Object.entries(spec.paths)) {
       assert.deepEqual(Object.keys(pathItem), ["get"], `No write operations in ${path}`);
       assert.ok(pathItem.get.responses["200"]);
@@ -706,5 +727,100 @@ test("Swagger OpenAPI and homepage document the new todos resource", async () =>
     assert.deepEqual(Object.keys(spec.paths["/api/todos/{id}"].get.responses).sort(), ["200", "400", "404", "429", "503"]);
     assert.deepEqual(spec.components.schemas.DemoTodo.required, ["id", "title", "completed"]);
     assert.equal(spec.components.schemas.DemoTodo.additionalProperties, false);
+  });
+});
+
+
+test("API statistics return initialized aggregate and never invent numbers", async () => {
+  const { state, collection } = mockMetricsCollection(22);
+  await withApp(async (base) => {
+    const r = await request(base, "/api/stats");
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body, { totalRequests: 22, startedAt: "2026-11-16T11:00:00.000Z" });
+    assert.equal(r.headers.get("cache-control"), "no-store");
+    assert.deepEqual(Object.keys(r.body), ["totalRequests", "startedAt"]);
+  }, { metricsProvider: async () => collection });
+  assert.equal(state.total, 22);
+});
+
+test("GET users and todos contribute to metrics while stats, health and pages do not", async () => {
+  const { state, collection } = mockMetricsCollection();
+  await withApp(async (base) => {
+    for (const endpoint of ["/api/users", "/api/todos", "/api/users?status=active", "/api/todos/" + ids[0]]) {
+      const response = await fetch(base + endpoint);
+      assert.equal(response.status, 200, endpoint);
+    }
+    await fetch(base + "/");
+    await fetch(base + "/health");
+    await fetch(base + "/api/stats");
+    await fetch(base + "/api/missing");
+    await fetch(base + "/api/users", { method: "POST" });
+    // Instrumentation is intentionally asynchronous after the API response.
+    for (let attempt = 0; attempt < 20 && state.total !== 4; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    assert.equal(state.total, 4);
+    const stats = await request(base, "/api/stats");
+    assert.equal(stats.body.totalRequests, 4);
+  }, { metricsProvider: async () => collection });
+});
+
+test("Invalid API IDs count as GET requests; 429 rejected requests are not counted", async () => {
+  const { state, collection } = mockMetricsCollection();
+  await withApp(async (base) => {
+    assert.equal((await fetch(base + "/api/users/invalid")).status, 400);
+    assert.equal((await fetch(base + "/api/todos")).status, 429);
+    for (let attempt = 0; attempt < 20 && state.total !== 1; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    assert.equal(state.total, 1);
+  }, {
+    metricsProvider: async () => collection,
+    rateLimitOptions: { limit: 1, windowMs: 60_000, isRender: false },
+  });
+});
+
+test("Stats use safe JSON 503 on write-connection outages and never expose secrets", async () => {
+  await withApp(async (base) => {
+    const r = await request(base, "/api/stats");
+    assert.equal(r.status, 503);
+    assert.equal(r.body.error, "service_unavailable");
+    assert.doesNotMatch(JSON.stringify(r.body), /secret-password/);
+  }, { metricsProvider: async () => { throw Error("secret-password"); } });
+});
+
+test("Homepage includes the requested three-card statistics design and no sample count", async () => {
+  await withApp(async (base) => {
+    const html = await (await fetch(base + "/")).text();
+    assert.ok(html.indexOf("overview-section") < html.indexOf("statistics-section"));
+    assert.ok(html.indexOf("statistics-section") < html.indexOf("resources-section"));
+    assert.match(html, /id="statistics"/);
+    assert.match(html, /data-stat-total/);
+    assert.match(html, /data-stat-started/);
+    assert.match(html, /data-stat-copy/);
+    assert.match(html, /Total API Requests/);
+    assert.match(html, /Public Resources/);
+    assert.match(html, /2<\/strong>/);
+    assert.match(html, /MongoDB Atlas/);
+    assert.match(html, /src="\/js\/statistics\.js"/);
+    assert.doesNotMatch(html, /12,480/);
+    const js = await (await fetch(base + "/js/statistics.js")).text();
+    assert.match(js, /fetch\("\/api\/stats"/);
+    assert.match(js, /intervalMs = 15000/);
+    assert.match(js, /document\.hidden/);
+    assert.match(js, /prefers-reduced-motion: reduce/);
+    const css = await (await fetch(base + "/css/style.css")).text();
+    assert.match(css, /\.statistics-grid\{display:grid/);
+    assert.match(css, /@media\(max-width:650px\)\{\.statistics-section/);
+  });
+});
+
+test("Stats endpoint is described in the OpenAPI contract as GET-only", async () => {
+  await withApp(async (base) => {
+    const spec = await (await fetch(base + "/openapi.json")).json();
+    assert.deepEqual(Object.keys(spec.paths["/api/stats"]), ["get"]);
+    assert.deepEqual(Object.keys(spec.paths["/api/stats"].get.responses).sort(), ["200", "429", "503"]);
+    assert.deepEqual(spec.components.schemas.ApiStatistics.required, ["totalRequests", "startedAt"]);
+    assert.equal(spec.components.schemas.ApiStatistics.additionalProperties, false);
   });
 });
