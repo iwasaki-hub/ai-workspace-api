@@ -328,6 +328,8 @@ test("Home and navigation render Font Awesome SVG icons without CDN or duplicate
     assert.match(html, /href="\/swagger"[^>]*>\s*<svg/);
     assert.match(html, /class="openapi-link openapi-link-primary" href="\/swagger"/);
     assert.match(html, /class="feature-icon"><svg/);
+    assert.match(html, /data-copy-label/);
+    assert.match(html, /data-response-copy-label/);
     assert.doesNotMatch(html, /kit\.fontawesome\.com|cdnjs\.cloudflare\.com\/ajax\/libs\/font-awesome/);
   });
 });
@@ -345,5 +347,9 @@ test("Swagger and footer render shared icons and CSS includes responsive icon ru
     assert.match(css, /\.ui-icon\{display:inline-block/);
     assert.match(css, /\.primary-nav>a\{display:inline-flex/);
     assert.match(css, /\.menu-toggle \.ui-icon/);
+    const copyScript = await (await fetch(base + "/js/main.js")).text();
+    assert.match(copyScript, /querySelector\("\[data-copy-label\]"\)/);
+    const explorerScript = await (await fetch(base + "/js/explorer.js")).text();
+    assert.match(explorerScript, /copyLabel\.textContent/);
   });
 });
