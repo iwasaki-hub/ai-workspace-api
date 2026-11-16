@@ -6,7 +6,10 @@ let clientPromise;
 
 export const isDatabaseConfigured = () => Boolean(uri);
 
-export async function getDemoCollection() {
+export async function getCollection(collectionName) {
+  if (!["connection_test", "todos"].includes(collectionName)) {
+    throw new Error("Unsupported collection name");
+  }
   if (!uri) {
     const error = new Error("MongoDB connection is not configured");
     error.code = "DB_NOT_CONFIGURED";
@@ -25,5 +28,13 @@ export async function getDemoCollection() {
   }
 
   const client = await clientPromise;
-  return client.db(databaseName).collection("connection_test");
+  return client.db(databaseName).collection(collectionName);
+}
+
+export async function getDemoCollection() {
+  return getCollection("connection_test");
+}
+
+export async function getTodosCollection() {
+  return getCollection("todos");
 }
