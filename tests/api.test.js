@@ -44,8 +44,8 @@ function mockCollection(data = fixture, observation = {}) {
   };
 }
 
-async function withApp(run, { provider = async () => mockCollection(), configured = true } = {}) {
-  const server = createApp({ collectionProvider: provider, databaseConfigured: configured }).listen(0, "127.0.0.1");
+async function withApp(run, { provider = async () => mockCollection(), configured = true, rateLimitOptions } = {}) {
+  const server = createApp({ collectionProvider: provider, databaseConfigured: configured, rateLimitOptions }).listen(0, "127.0.0.1");
   try {
     await new Promise((resolve, reject) => {
       if (server.listening) return resolve();
@@ -242,8 +242,8 @@ test("GET /openapi.json is a valid OpenAPI contract matching implemented GET rou
       const actual = await fetch(base + url);
       assert.equal(actual.status, 200, `documented GET ${url}`);
     }
-    assert.deepEqual(Object.keys(spec.paths["/api/users"].get.responses).sort(), ["200", "400", "503"]);
-    assert.deepEqual(Object.keys(spec.paths["/api/users/{id}"].get.responses).sort(), ["200", "400", "404", "503"]);
+    assert.deepEqual(Object.keys(spec.paths["/api/users"].get.responses).sort(), ["200", "400", "429", "503"]);
+    assert.deepEqual(Object.keys(spec.paths["/api/users/{id}"].get.responses).sort(), ["200", "400", "404", "429", "503"]);
     assert.deepEqual(spec.paths["/api/users"].get.parameters[0].schema.enum, ["active", "inactive"]);
     assert.equal(spec.components.schemas.DemoUser.additionalProperties, false);
     assert.deepEqual(spec.components.schemas.DemoUser.required, ["id", "name", "status", "purpose"]);
@@ -351,5 +351,71 @@ test("Swagger and footer render shared icons and CSS includes responsive icon ru
     assert.match(copyScript, /querySelector\("\[data-copy-label\]"\)/);
     const explorerScript = await (await fetch(base + "/js/explorer.js")).text();
     assert.match(explorerScript, /copyLabel\.textContent/);
+  });
+});
+
+
+test("security headers apply to HTML, API JSON and Swagger without breaking response bodies", async () => {
+  await withApp(async (base) => {
+    for (const path of ["/", "/swagger", "/health", "/api/users"]) {
+      const response = await fetch(base + path);
+      assert.equal(response.status, 200, path);
+      assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+      assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+      assert.equal(response.headers.get("x-frame-options"), "DENY");
+      assert.equal(response.headers.get("permissions-policy"), "camera=(), microphone=(), geolocation=()");
+      assert.equal(response.headers.get("x-powered-by"), null);
+    }
+  });
+});
+
+test("API limiter returns JSON 429 with RateLimit and Retry-After headers", async () => {
+  await withApp(async (base) => {
+    const options = { headers: { "X-Forwarded-For": "198.51.100.20" } };
+    const first = await fetch(base + "/api/users", options);
+    const second = await fetch(base + "/api/users?status=active", options);
+    const third = await fetch(base + "/api/users/" + ids[0], options);
+    assert.equal(first.status, 200);
+    assert.equal(second.status, 200);
+    assert.equal(third.status, 429);
+    assert.deepEqual(await third.json(), {
+      error: "rate_limited",
+      message: "リクエストが集中しています。時間をおいて再試行してください。",
+    });
+    assert.ok(third.headers.get("retry-after"));
+    assert.match(third.headers.get("ratelimit") || "", /remaining=0/);
+    const health = await fetch(base + "/health", options);
+    assert.equal(health.status, 200, "health checks are excluded");
+    const home = await fetch(base + "/", options);
+    assert.equal(home.status, 200, "documentation is excluded");
+  }, { rateLimitOptions: { limit: 2, windowMs: 60_000, isRender: false } });
+});
+
+test("local limiter ignores spoofed forwarding headers", async () => {
+  await withApp(async (base) => {
+    const one = await fetch(base + "/api/users", { headers: { "CF-Connecting-IP": "203.0.113.4", "X-Forwarded-For": "203.0.113.5" } });
+    const two = await fetch(base + "/api/users", { headers: { "CF-Connecting-IP": "203.0.113.6", "X-Forwarded-For": "203.0.113.7" } });
+    assert.equal(one.status, 200);
+    assert.equal(two.status, 429, "spoofed headers must not change local client identity");
+  }, { rateLimitOptions: { limit: 1, windowMs: 60_000, isRender: false } });
+});
+
+test("Render limiter separates valid CF-Connecting-IP clients and ignores invalid values", async () => {
+  await withApp(async (base) => {
+    const requestFrom = (ip) => fetch(base + "/api/users", { headers: { "CF-Connecting-IP": ip } });
+    assert.equal((await requestFrom("198.51.100.1")).status, 200);
+    assert.equal((await requestFrom("198.51.100.1")).status, 429);
+    assert.equal((await requestFrom("198.51.100.2")).status, 200);
+    assert.equal((await requestFrom("invalid")).status, 200);
+    assert.equal((await requestFrom("not-an-ip")).status, 429);
+  }, { rateLimitOptions: { limit: 1, windowMs: 60_000, isRender: true } });
+});
+
+test("API rate limits do not affect existing 400 validation responses", async () => {
+  await withApp(async (base) => {
+    const r = await request(base, "/api/users?status=wrong");
+    assert.equal(r.status, 400);
+    assert.equal(r.body.error, "invalid_status");
+    assert.ok(r.headers.get("ratelimit"));
   });
 });

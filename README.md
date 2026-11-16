@@ -10,6 +10,7 @@
 - [2026-11-16 OpenAPI 3.1 / Swagger UI の導入](docs/development/2026-11-16-openapi-swagger.md)
 - [2026-11-16 OpenAPIリンクの視認性改善](docs/development/2026-11-16-openapi-link-visibility.md)
 - [2026-11-16 Font Awesomeアイコンの一元管理](docs/development/2026-11-16-fontawesome-icons.md)
+- [2026-11-16 公開APIのセキュリティ強化](docs/development/2026-11-16-api-security.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -47,9 +48,13 @@ GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレ�
 
 公開ページの [APIを試す](https://ai-workspace-api-327r.onrender.com/#try-api) から、GET `/health`、ユーザー一覧、status検索、ID検索をフォーム操作で実行できます。JSON結果は画面内に表示されます。書き込み機能はありません。
 
+## 公開APIの保護
+
+`/api/*` はIPごとに**60秒あたり120リクエスト**に制限します。超過した場合はHTTP 429と `Retry-After`・`RateLimit` ヘッダーを返します。`/health`、ドキュメント、Swagger UIは対象外です。基本的なHTTPセキュリティヘッダーも設定済みです。カウントはアプリのメモリ内で管理するため、再起動でリセットされ、複数インスタンスには共有されません。詳しくは[開発記録](docs/development/2026-11-16-api-security.md)を参照してください。
+
 ## テスト
 
-`npm test` でMongoDBの認証情報不要の回帰テスト（22ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+`npm test` でMongoDBの認証情報不要の回帰テスト（27ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ### 本番スモークテスト
 
@@ -97,6 +102,7 @@ AtlasにはAPI専用の読み取り専用ユーザー `ai_workspace_api_user`（
 - 400: IDやstatusの形式が不正
 - 404: 対象IDのデモデータが見つからない
 - 503: DB設定がない、またはDBへの接続・読取不可
+- 429: 一定時間内のAPIリクエスト上限を超過
 
 ## ディレクトリ
 

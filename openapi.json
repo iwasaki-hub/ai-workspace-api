@@ -57,7 +57,7 @@
           "Users"
         ],
         "summary": "公開デモユーザー一覧取得",
-        "description": "`demo: true` のレコードを `_id` 昇順で最大50件返します。空の配列の場合もあります。",
+        "description": "`demo: true` のレコードを `_id` 昇順で最大50件返します。空の配列の場合もあります。\n\nHTTP 429のレート制限対象（クライアントごとに120回/分、インスタンス単位）。",
         "parameters": [
           {
             "name": "status",
@@ -111,6 +111,29 @@
               }
             }
           },
+          "429": {
+            "description": "レート制限（同じクライアントから60秒間に120回を超えるAPIリクエスト）",
+            "headers": {
+              "Retry-After": {
+                "description": "再試行までの待機秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "rate_limited",
+                  "message": "リクエストが集中しています。時間をおいて再試行してください。"
+                }
+              }
+            }
+          },
           "503": {
             "description": "DB設定不足または読み取り失敗",
             "content": {
@@ -135,7 +158,7 @@
           "Users"
         ],
         "summary": "ObjectIdによるデモユーザーの取得",
-        "description": "一致するObjectIdを持ち、`demo: true` のレコードのみ返します。",
+        "description": "一致するObjectIdを持ち、`demo: true` のレコードのみ返します。\n\nHTTP 429のレート制限対象（クライアントごとに120回/分、インスタンス単位）。",
         "parameters": [
           {
             "name": "id",
@@ -190,6 +213,29 @@
                 "example": {
                   "error": "not_found",
                   "message": "指定されたデータは見つかりませんでした。"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "レート制限（同じクライアントから60秒間に120回を超えるAPIリクエスト）",
+            "headers": {
+              "Retry-After": {
+                "description": "再試行までの待機秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "rate_limited",
+                  "message": "リクエストが集中しています。時間をおいて再試行してください。"
                 }
               }
             }
