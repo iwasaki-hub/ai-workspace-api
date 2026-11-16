@@ -5,6 +5,7 @@
 - [2026-11-16 開発工程記録（企画・要件定義から初期MVPの接続確認まで）](docs/development/2026-11-16-development-history.md)
 - [2026-11-16 GET APIの正常系・異常系テストと自動化](docs/development/2026-11-16-api-tests.md)
 - [2026-11-16 mainブランチ保護の設定と失敗テストによる実地検証](docs/development/2026-11-16-branch-protection.md)
+- [2026-11-16 公開APIのスモークテストと定期自動実行](docs/development/2026-11-16-production-smoke.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -27,6 +28,16 @@ GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレ�
 ## テスト
 
 `npm test` でMongoDBの認証情報不要の回帰テスト（13ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+
+### 本番スモークテスト
+
+GitHub Actionsの `Production API Smoke Test` が、`main` へのpush・毎日09:00 JST・手動実行で公開GET APIの応答を検証します。MongoDB認証情報は使用せず、Renderの公開エンドポイントにアクセスします。
+
+```bash
+node scripts/smoke-test.mjs
+```
+
+詳細は[公開APIのスモークテスト手順](docs/development/2026-11-16-production-smoke.md)を参照してください。
 
 ## ローカル実行
 
