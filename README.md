@@ -14,6 +14,7 @@
 - [2026-11-16 利用できるリソースのセクション追加](docs/development/2026-11-16-resources-section.md)
 - [2026-11-16 MotionによるUIアニメーション追加](docs/development/2026-11-16-motion-ui.md)
 - [2026-11-16 モバイルメニューのスクロール時自動クローズ](docs/development/2026-11-16-mobile-menu-scroll.md)
+- [2026-11-16 Todosリソース追加](docs/development/2026-11-16-todos-resource.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -46,18 +47,20 @@ Swagger UIでの操作はGETのみです。APIを追加・変更するときは 
 | GET | `/api/users` | デモデータを取得（最大50件） |
 | GET | `/api/users?status=active` | activeのデモデータを取得（inactiveも指定可能） |
 | GET | `/api/users/:id` | 指定したデモデータを1件取得 |
+| GET | `/api/todos` | 公開デモToDoを最大50件取得 |
+| GET | `/api/todos/:id` | ObjectIdで公開デモToDoを1件取得 |
 
-GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレコードのみです。返却フィールドは `id`, `name`, `status`, `purpose` のみです。MongoDBの `_id` は文字列の `id` に変換します。書き込み用APIはありません。
+GET APIは `ai_workspace_db.connection_test` と `ai_workspace_db.todos` の `demo: true` のレコードのみを返します。ユーザーの返却フィールドは `id`, `name`, `status`, `purpose`、ToDoは `id`, `title`, `completed` のみです。MongoDBの `_id` は文字列の `id` に変換します。書き込み用APIはありません。
 
 **接続が設定されていない場合やAtlasへ到達できない場合、データAPIはHTTP 503を返します。** `/health` が200でもDB接続済みという意味ではありません。
 
 ## 利用できるリソース
 
-トップページの[Resources](https://ai-workspace-api-327r.onrender.com/#resources)に、現在公開されている `/api/users` のリンクと公開一覧の表示件数を掲載しています。リソースの表示定義は `ui/resources.js` に一元管理しており、実装済みのGET APIが増えたときに拡張できます。現在は最大50件の表示件数を示します。
+トップページの[Resources](https://ai-workspace-api-327r.onrender.com/#resources)に、現在公開されている `/api/users` と `/api/todos` のリンクと公開一覧の表示件数を掲載しています。リソースの表示定義は `ui/resources.js` に一元管理しており、実装済みのGET APIが増えたときに拡張できます。現在は最大50件の表示件数を示します。
 
 ## ブラウザでAPIを試す
 
-公開ページの [APIを試す](https://ai-workspace-api-327r.onrender.com/#try-api) から、GET `/health`、ユーザー一覧、status検索、ID検索をフォーム操作で実行できます。JSON結果は画面内に表示されます。書き込み機能はありません。
+公開ページの [APIを試す](https://ai-workspace-api-327r.onrender.com/#try-api) から、GET `/health`、ユーザー一覧・ID検索、status検索、ToDo一覧・ID検索をフォーム操作で実行できます。JSON結果は画面内に表示されます。書き込み機能はありません。
 
 ## 公開APIの保護
 
@@ -69,7 +72,7 @@ GET APIの対象は、`ai_workspace_db.connection_test` の `demo: true` のレ�
 
 ### 本番スモークテスト
 
-GitHub Actionsの `Production API Smoke Test` が、`main` へのpush・毎日09:00 JST・手動実行で公開GET APIの応答を検証します。MongoDB認証情報は使用せず、Renderの公開エンドポイントにアクセスします。
+GitHub Actionsの `Production API Smoke Test`（Users・Todos合計7項目）が、`main` へのpush・毎日09:00 JST・手動実行で公開GET APIの応答を検証します。MongoDB認証情報は使用せず、Renderの公開エンドポイントにアクセスします。
 
 ```bash
 node scripts/smoke-test.mjs
