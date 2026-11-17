@@ -11,7 +11,7 @@ import { createMetricsHandlers } from "./middleware/metrics.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function createApp({ collectionProvider, todoCollectionProvider, metricsCollectionProvider, databaseConfigured = isDatabaseConfigured(), rateLimitOptions } = {}) {
+export function createApp({ collectionProvider, todoCollectionProvider, metricsCollectionProvider, databaseConfigured = isDatabaseConfigured(), rateLimitOptions, metricsNow } = {}) {
   const app = express();
 
   app.disable("x-powered-by");
@@ -42,13 +42,16 @@ export function createApp({ collectionProvider, todoCollectionProvider, metricsC
     res.render("index", { endpoints, resources: publicResources, configured: databaseConfigured });
   });
 
+  app.get("/statistics", (_req, res) => res.render("statistics", { pageTitle: "統計ダッシュボード" }));
+
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", service: "ai-workspace-api" });
   });
 
-  const { trackRequest, getStats } = createMetricsHandlers(metricsCollectionProvider);
+  const { trackRequest, getStats, getDetailedStats } = createMetricsHandlers(metricsCollectionProvider, metricsNow);
   app.use("/api", createApiRateLimiter(rateLimitOptions));
   app.get("/api/stats", getStats);
+  app.get("/api/stats/details", getDetailedStats);
   app.use("/api", trackRequest);
   app.use("/api", createApiRouter(collectionProvider, todoCollectionProvider));
   app.use("/api", (_req, res) => {
