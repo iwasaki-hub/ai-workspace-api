@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Workspace API",
-    "version": "0.8.0",
+    "version": "0.11.0",
     "summary": "Read-only demo REST API",
     "description": "MongoDB Atlasから `demo: true` のレコードのみを読み取る学習用公開REST API。書き込みAPIは提供しません。`/health` はMongoDBの接続検証を行いません。"
   },
@@ -618,6 +618,65 @@
           }
         }
       }
+    },
+    "/api/stats/visitors": {
+      "get": {
+        "operationId": "getUniqueBrowserVisitors",
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "同意済みWebブラウザの推定ユニーク数",
+        "description": "今日・今月（Asia/Tokyo）の計測同意済みブラウザ数のみを集計します。ログインユーザーの人数ではなく、同じ人の複数端末・ブラウザは別カウントです。過去の履歴は遡及計測しません。生の識別子やIPはMongoDBに保存せず、期間別のハッシュを期限付きで保持します。",
+        "responses": {
+          "200": {
+            "description": "同意済みブラウザのユニーク件数",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteVisitorStatistics"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "レート制限（同じクライアントから60秒間に120回を超えるAPIリクエスト）",
+            "headers": {
+              "Retry-After": {
+                "description": "再試行までの待機秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "rate_limited",
+                  "message": "リクエストが集中しています。時間をおいて再試行してください。"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DB設定不足または読み取り失敗",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "service_unavailable",
+                  "message": "データを取得できませんでした。時間をおいて再試行してください。"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -834,6 +893,44 @@
                 }
               }
             }
+          }
+        }
+      },
+      "WebsiteVisitorStatistics": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "todayVisitors",
+          "monthVisitors",
+          "date",
+          "month",
+          "timezone",
+          "measurement"
+        ],
+        "properties": {
+          "todayVisitors": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "monthVisitors": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}$"
+          },
+          "timezone": {
+            "type": "string",
+            "const": "Asia/Tokyo"
+          },
+          "measurement": {
+            "type": "string",
+            "const": "consented_browsers"
           }
         }
       }
