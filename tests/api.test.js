@@ -725,7 +725,7 @@ test("Swagger OpenAPI and homepage document the new todos resource", async () =>
     const html = await (await fetch(base + "/")).text();
     assert.match(html, /href="\/api\/todos"/);
     assert.match(html, /data-resource-count="\/api\/todos"/);
-    assert.match(html, /2 RESOURCES/);
+    assert.match(html, /3 RESOURCES/);
     assert.match(html, /value="todos"/);
     assert.match(html, /value="todo-id"/);
     const js = await (await fetch(base + "/js/explorer.js")).text();
@@ -809,7 +809,7 @@ test("Homepage includes the requested three-card statistics design and no sample
     assert.match(html, /data-stat-copy/);
     assert.match(html, /Total API Requests/);
     assert.match(html, /Public Resources/);
-    assert.match(html, /2<\/strong>/);
+    assert.match(html, /3<\/strong>/);
     assert.match(html, /MongoDB Atlas/);
     assert.match(html, /src="\/js\/statistics\.js"/);
     assert.doesNotMatch(html, /12,480/);
