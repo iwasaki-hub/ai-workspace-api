@@ -26,3 +26,22 @@ export async function getMetricsCollection() {
   }
   return (await clientPromise).db(databaseName).collection("api_metrics");
 }
+
+let visitorIndexPromise;
+
+/** Visitor records contain only period-specific irreversible hashes and expire automatically. */
+export async function getVisitorCollection() {
+  const metricCollection = await getMetricsCollection();
+  const collection = metricCollection.db.collection("website_visitors");
+  if (!visitorIndexPromise) {
+    visitorIndexPromise = Promise.all([
+      collection.createIndex({ period: 1 }, { name: "visitor_period" }),
+      collection.createIndex({ expiresAt: 1 }, { name: "visitor_expiry_ttl", expireAfterSeconds: 0 }),
+    ]).catch((error) => {
+      visitorIndexPromise = undefined;
+      throw error;
+    });
+  }
+  await visitorIndexPromise;
+  return collection;
+}
