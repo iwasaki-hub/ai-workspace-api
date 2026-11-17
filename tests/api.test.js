@@ -269,7 +269,7 @@ test("GET /openapi.json is a valid OpenAPI contract matching implemented GET rou
     const spec = await response.json();
     assert.equal(spec.openapi, "3.1.0");
     assert.equal(spec.info.title, "AI Workspace API");
-    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/stats", "/api/stats/details", "/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
+    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/stats", "/api/stats/details", "/api/stats/visitors", "/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
     for (const [path, pathItem] of Object.entries(spec.paths)) {
       assert.deepEqual(Object.keys(pathItem), ["get"], `No write operations in ${path}`);
       assert.ok(pathItem.get.responses["200"]);
@@ -1389,5 +1389,16 @@ test("Visitor consent is explicit, revocable and respects GPC or DNT", async () 
     const css = await (await fetch(base + "/css/style.css")).text();
     assert.match(css, /\.visitor-summary\{display:grid/);
     assert.match(css, /@media\(max-width:650px\)\{\.visitor-statistics/);
+  });
+});
+
+test("Visitor endpoint is GET-only and documented by OpenAPI 3.1", async () => {
+  const SwaggerParser = (await import("@apidevtools/swagger-parser")).default;
+  await withApp(async (base) => {
+    const spec = await (await fetch(base + "/openapi.json")).json();
+    assert.deepEqual(Object.keys(spec.paths["/api/stats/visitors"]), ["get"]);
+    assert.deepEqual(Object.keys(spec.paths["/api/stats/visitors"].get.responses).sort(), ["200", "429", "503"]);
+    assert.equal(spec.components.schemas.WebsiteVisitorStatistics.additionalProperties, false);
+    assert.equal((await SwaggerParser.validate(spec)).openapi, "3.1.0");
   });
 });
