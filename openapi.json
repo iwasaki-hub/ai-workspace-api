@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Workspace API",
-    "version": "0.11.0",
+    "version": "0.13.0",
     "summary": "Read-only demo REST API",
     "description": "MongoDB Atlasから `demo: true` のレコードのみを読み取る学習用公開REST API。書き込みAPIは提供しません。`/health` はMongoDBの接続検証を行いません。"
   },
@@ -28,6 +28,10 @@
     {
       "name": "Statistics",
       "description": "API利用状況（書き込み不可）"
+    },
+    {
+      "name": "English Phrases",
+      "description": "日常会話でよく使う英語の例文と日本語訳"
     }
   ],
   "security": [],
@@ -677,6 +681,64 @@
           }
         }
       }
+    },
+    "/api/english-phrases": {
+      "get": {
+        "operationId": "listDailyEnglishPhrases",
+        "tags": [
+          "English Phrases"
+        ],
+        "summary": "日常英会話フレーズ10件",
+        "description": "日常英会話でよく使う固定センテンス10件を、日本語訳と場面カテゴリ付きで返します。DBアクセス不要・読み取り専用。トップページでは「利用できるリソース」にのみ表示します。",
+        "responses": {
+          "200": {
+            "description": "10件の英語センテンス",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "minItems": 10,
+                  "maxItems": 10,
+                  "items": {
+                    "$ref": "#/components/schemas/DailyEnglishPhrase"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "english": "How's it going?",
+                    "japanese": "調子はどう？",
+                    "category": "あいさつ"
+                  }
+                ]
+              }
+            }
+          },
+          "429": {
+            "description": "レート制限（同じクライアントから60秒間に120回を超えるAPIリクエスト）",
+            "headers": {
+              "Retry-After": {
+                "description": "再試行までの待機秒数",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "error": "rate_limited",
+                  "message": "リクエストが集中しています。時間をおいて再試行してください。"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -931,6 +993,35 @@
           "measurement": {
             "type": "string",
             "const": "consented_browsers"
+          }
+        }
+      },
+      "DailyEnglishPhrase": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "english",
+          "japanese",
+          "category"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "english": {
+            "type": "string",
+            "description": "日常英会話の英語センテンス"
+          },
+          "japanese": {
+            "type": "string",
+            "description": "日本語訳"
+          },
+          "category": {
+            "type": "string",
+            "description": "使用場面"
           }
         }
       }

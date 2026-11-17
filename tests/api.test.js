@@ -269,7 +269,7 @@ test("GET /openapi.json is a valid OpenAPI contract matching implemented GET rou
     const spec = await response.json();
     assert.equal(spec.openapi, "3.1.0");
     assert.equal(spec.info.title, "AI Workspace API");
-    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/stats", "/api/stats/details", "/api/stats/visitors", "/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
+    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/english-phrases", "/api/stats", "/api/stats/details", "/api/stats/visitors", "/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
     for (const [path, pathItem] of Object.entries(spec.paths)) {
       assert.deepEqual(Object.keys(pathItem), ["get"], `No write operations in ${path}`);
       assert.ok(pathItem.get.responses["200"]);
@@ -459,9 +459,9 @@ test("API rate limits do not affect existing 400 validation responses", async ()
 
 test("Resources section lists only implemented public resources below feature cards", async () => {
   const { publicResources } = await import("../ui/resources.js");
-  assert.equal(publicResources.length, 2);
+  assert.equal(publicResources.length, 3);
   assert.ok(Object.isFrozen(publicResources));
-  assert.deepEqual(publicResources.map((resource) => resource.path), ["/api/users", "/api/todos"]);
+  assert.deepEqual(publicResources.map((resource) => resource.path), ["/api/users", "/api/english-phrases", "/api/todos"]);
   await withApp(async (base) => {
     const response = await fetch(base + "/");
     assert.equal(response.status, 200);
@@ -472,7 +472,7 @@ test("Resources section lists only implemented public resources below feature ca
     assert.match(html, /利用できるリソース/);
     assert.match(html, /href="\/api\/users"[^>]*target="_blank"/);
     assert.match(html, /data-resource-count="\/api\/users"/);
-    assert.match(html, /2 RESOURCES/);
+    assert.match(html, /3 RESOURCES/);
     assert.doesNotMatch(html, /href="\/api\/(posts|comments|albums|photos)"/);
     assert.match(html, /src="\/js\/resources\.js"/);
   });
@@ -725,7 +725,7 @@ test("Swagger OpenAPI and homepage document the new todos resource", async () =>
     const html = await (await fetch(base + "/")).text();
     assert.match(html, /href="\/api\/todos"/);
     assert.match(html, /data-resource-count="\/api\/todos"/);
-    assert.match(html, /2 RESOURCES/);
+    assert.match(html, /3 RESOURCES/);
     assert.match(html, /value="todos"/);
     assert.match(html, /value="todo-id"/);
     const js = await (await fetch(base + "/js/explorer.js")).text();
@@ -809,7 +809,7 @@ test("Homepage includes the requested three-card statistics design and no sample
     assert.match(html, /data-stat-copy/);
     assert.match(html, /Total API Requests/);
     assert.match(html, /Public Resources/);
-    assert.match(html, /2<\/strong>/);
+    assert.match(html, /3<\/strong>/);
     assert.match(html, /MongoDB Atlas/);
     assert.match(html, /src="\/js\/statistics\.js"/);
     assert.doesNotMatch(html, /12,480/);
@@ -1475,4 +1475,75 @@ test("Social preview endpoints do not modify existing API counters or need datab
     assert.equal(stats.status, 200);
     assert.equal(stats.body.totalRequests, 29);
   }, { configured: false, metricsProvider: async () => collection });
+});
+
+
+test("GET /api/english-phrases returns ten useful sentences with exact Japanese translations", async () => {
+  await withApp(async (base) => {
+    const response = await fetch(base + "/api/english-phrases");
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type"), /application\/json/);
+    const phrases = await response.json();
+    assert.equal(phrases.length, 10);
+    assert.deepEqual(phrases.map((item) => item.id), Array.from({length:10}, (_,i) => i+1));
+    assert.equal(new Set(phrases.map((item) => item.english)).size, 10);
+    for (const phrase of phrases) {
+      assert.deepEqual(Object.keys(phrase), ["id", "english", "japanese", "category"]);
+      for (const key of ["english", "japanese", "category"]) {
+        assert.equal(typeof phrase[key], "string");
+        assert.ok(phrase[key].length > 0);
+      }
+    }
+    assert.deepEqual(phrases[0], {
+      id: 1, english: "How's it going?", japanese: "調子はどう？", category: "あいさつ",
+    });
+    assert.deepEqual(phrases[9], {
+      id: 10, english: "See you later!", japanese: "またあとでね！", category: "別れ際",
+    });
+  }, { configured: false, provider: async () => { throw new Error("DB must not be used"); } });
+});
+
+test("English phrases appear only in Resources section, not other home sections", async () => {
+  const { publicResources } = await import("../ui/resources.js");
+  const entry = publicResources.find((resource) => resource.path === "/api/english-phrases");
+  assert.equal(entry.countEndpoint, "/api/english-phrases");
+  assert.equal(entry.maxDisplayedCount, 10);
+  assert.equal(entry.icon, "examples");
+  await withApp(async (base) => {
+    const html = await (await fetch(base + "/")).text();
+    const before = html.slice(0, html.indexOf('id="resources"'));
+    const resources = html.slice(html.indexOf('id="resources"'), html.indexOf('id="endpoints"'));
+    const after = html.slice(html.indexOf('id="endpoints"'));
+    assert.doesNotMatch(before, /\/api\/english-phrases/);
+    assert.match(resources, /href="\/api\/english-phrases"/);
+    assert.match(resources, /data-resource-count="\/api\/english-phrases"/);
+    assert.match(resources, /日常英会話/);
+    assert.match(resources, /3 RESOURCES/);
+    assert.doesNotMatch(after, /\/api\/english-phrases/);
+    assert.doesNotMatch((await (await fetch(base + "/examples")).text()), /\/api\/english-phrases/);
+    assert.doesNotMatch((await (await fetch(base + "/statistics")).text()), /\/api\/english-phrases/);
+  });
+});
+
+test("English phrase resource is read-only and respects API rate limits", async () => {
+  await withApp(async (base) => {
+    assert.equal((await fetch(base + "/api/english-phrases")).status, 200);
+    assert.equal((await fetch(base + "/api/english-phrases", { method:"POST" })).status, 429);
+  }, { rateLimitOptions: { limit: 1, windowMs:60000, isRender:false } });
+  await withApp(async (base) => {
+    const res = await fetch(base + "/api/english-phrases", { method:"POST" });
+    assert.equal(res.status, 404);
+    assert.equal((await fetch(base + "/api/english-phrases", { method:"DELETE" })).status, 404);
+  });
+});
+
+test("English phrase OpenAPI schema is exact and public resource counter can load 10", async () => {
+  await withApp(async (base) => {
+    const spec = await (await fetch(base + "/openapi.json")).json();
+    assert.equal(spec.components.schemas.DailyEnglishPhrase.additionalProperties, false);
+    assert.deepEqual(spec.components.schemas.DailyEnglishPhrase.required, ["id","english","japanese","category"]);
+    assert.deepEqual(Object.keys(spec.paths["/api/english-phrases"]), ["get"]);
+    assert.deepEqual(Object.keys(spec.paths["/api/english-phrases"].get.responses).sort(), ["200","429"]);
+    assert.equal(spec.paths["/api/english-phrases"].get.responses["200"].content["application/json"].schema.maxItems, 10);
+  });
 });
