@@ -1402,3 +1402,77 @@ test("Visitor endpoint is GET-only and documented by OpenAPI 3.1", async () => {
     assert.equal((await SwaggerParser.validate(spec)).openapi, "3.1.0");
   });
 });
+
+
+test("Social share metadata is rendered server-side on all public HTML pages", async () => {
+  const pages = [
+    { path: "/", canonical: "/", title: "AI Workspace API | 学んで試せるREST API" },
+    { path: "/statistics", canonical: "/statistics", title: "統計ダッシュボード | AI Workspace API" },
+    { path: "/examples", canonical: "/examples", title: "APIコードサンプル | AI Workspace API" },
+    { path: "/swagger", canonical: "/swagger", title: "Swagger UI | AI Workspace API" },
+    { path: "/swagger/", canonical: "/swagger", title: "Swagger UI | AI Workspace API" },
+  ];
+  await withApp(async (base) => {
+    for (const { path, canonical, title } of pages) {
+      const res = await fetch(base + path, { headers: { "User-Agent": "Twitterbot/1.0" } });
+      assert.equal(res.status, 200, path);
+      assert.match(res.headers.get("content-type"), /text\/html/);
+      const html = await res.text();
+      const head = html.split("</head>")[0];
+      const origin = "https://ai-workspace-api-327r.onrender.com";
+      assert.ok(head.includes('<meta property="og:title" content="' + title + '">'), path);
+      assert.ok(head.includes('<meta name="twitter:title" content="' + title + '">'), path);
+      assert.ok(head.includes('<link rel="canonical" href="' + origin + canonical + '">'), path);
+      assert.ok(head.includes('<meta property="og:url" content="' + origin + canonical + '">'), path);
+      assert.ok(head.includes('<meta property="og:image" content="' + origin + '/social-card.png">'), path);
+      assert.ok(head.includes('<meta name="twitter:image" content="' + origin + '/social-card.png">'), path);
+      assert.ok(head.includes('<meta name="twitter:card" content="summary_large_image">'), path);
+      assert.ok(head.includes('<meta property="og:image:type" content="image/png">'), path);
+      assert.ok(head.includes('<meta property="og:image:width" content="1200">'), path);
+      assert.ok(head.includes('<meta property="og:image:height" content="630">'), path);
+      assert.ok(head.includes('<meta property="og:locale" content="ja_JP">'), path);
+      assert.ok(head.includes('<meta property="og:image:alt"'), path);
+      assert.ok(head.includes('<meta name="twitter:image:alt"'), path);
+      assert.ok(head.includes('<meta property="og:description" content="'), path);
+      assert.ok(head.includes('<meta name="description" content="'), path);
+      assert.equal((head.match(/property="og:image" /g) || []).length, 1, path);
+      assert.doesNotMatch(head, /localhost|127\.0\.0\.1|&amp;#|<script[^>]*>.*og:image/);
+    }
+  });
+});
+
+test("Social card is a public valid 1200x630 PNG served quickly and cached", async () => {
+  const sharp = (await import("sharp")).default;
+  await withApp(async (base) => {
+    const first = await fetch(base + "/social-card.png", {
+      headers: { "User-Agent": "facebookexternalhit/1.1" },
+    });
+    assert.equal(first.status, 200);
+    assert.match(first.headers.get("content-type"), /image\/png/);
+    assert.equal(first.headers.get("x-content-type-options"), "nosniff");
+    assert.match(first.headers.get("cache-control") || "", /public/);
+    const data = Buffer.from(await first.arrayBuffer());
+    assert.ok(data.length > 10_000 && data.length < 5_000_000);
+    assert.deepEqual([...data.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+    const info = await sharp(data).metadata();
+    assert.equal(info.width, 1200);
+    assert.equal(info.height, 630);
+    assert.equal(info.format, "png");
+    const other = await fetch(base + "/social-card.png");
+    assert.equal(other.status, 200);
+    assert.deepEqual(Buffer.from(await other.arrayBuffer()), data);
+    assert.equal((await fetch(base + "/social-card.svg")).status, 200);
+  }, { configured: false });
+});
+
+test("Social preview endpoints do not modify existing API counters or need database", async () => {
+  const { collection, state } = mockMetricsCollection(29);
+  await withApp(async (base) => {
+    const paths = ["/", "/statistics", "/examples", "/swagger", "/swagger/", "/social-card.png"];
+    for (const path of paths) assert.equal((await fetch(base + path)).status, 200, path);
+    assert.equal(state.total, 29);
+    const stats = await request(base, "/api/stats");
+    assert.equal(stats.status, 200);
+    assert.equal(stats.body.totalRequests, 29);
+  }, { configured: false, metricsProvider: async () => collection });
+});
