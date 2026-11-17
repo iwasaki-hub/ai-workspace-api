@@ -9,6 +9,7 @@ const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIO
 export function normalizedApiPath(baseUrl, path) {
   if (baseUrl === "/health") return "/health";
   if (baseUrl !== "/api") return "/api/*";
+  if (path === "/english-phrases") return "/api/english-phrases";
   if (path === "/users") return "/api/users";
   if (/^\/users\/[^/]+$/.test(path)) return "/api/users/:id";
   if (path === "/todos") return "/api/todos";
