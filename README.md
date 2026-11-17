@@ -17,6 +17,7 @@
 - [2026-11-16 Todosリソース追加](docs/development/2026-11-16-todos-resource.md)
 - [2026-11-16 API統計のリアルタイム表示](docs/development/2026-11-16-live-api-statistics.md)
 - [2026-11-17 統計専用ページ・日別/月別/API別集計](docs/development/2026-11-17-statistics-dashboard.md)
+- [2026-11-17 使い方専用ページとAPIコードサンプル](docs/development/2026-11-17-api-code-examples.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -38,6 +39,10 @@ Node.js + Express + EJS + MongoDB Atlas の学習用REST API。GitHubからRende
 
 [GET /api/stats/details](https://ai-workspace-api-327r.onrender.com/api/stats/details)が詳細のJSONデータを返します。既存の `/api/stats` は仕様変更しません。**詳細な日・月・API別カウンターは新機能のデプロイ後から集計し、過去の内訳は復元されません。** 全期間の累計は従来値を引き継ぎます。
 
+## 使い方・APIコードサンプル
+
+[使い方の専用ページ（/examples）](https://ai-workspace-api-327r.onrender.com/examples)でJavaScript・Python・curlのコードサンプルを切り替えられます。公開GET APIの9種類の例を選び、そのままコードをコピーできます。ID検索は一覧から取得した24桁のObjectIdを入力してください。メニューの「使い方」はこの専用ページへ移動します。JavaScriptのサンプルは本サイトのブラウザ開発者ツールでの実行を想定しており、異なるWebサイトのブラウザから呼び出すとCORS制限を受ける場合があります。
+
 ## アイコンの管理
 
 Font Awesome FreeのSVGアイコンを使用しています。**アイコンの選択と名称は `ui/icons.js` に集約**し、EJS画面では `<%- icon("overview") %>` のように用途別のキーで表示します。追加・変更する場合はこのファイルを編集してください。CDNやFont Awesome Kitの設定は不要です。
@@ -58,6 +63,7 @@ Swagger UIでの操作はGETのみです。APIを追加・変更するときは 
 | --- | --- | --- |
 | GET | `/` | EJSによるAPI仕様ページ |
 | GET | `/statistics` | EJSの専用統計ダッシュボード |
+| GET | `/examples` | EJSの使い方・コードサンプル専用ページ |
 | GET | `/health` | サーバーの稼働確認（DB接続確認は行いません） |
 | GET | `/api/users` | デモデータを取得（最大50件） |
 | GET | `/api/users?status=active` | activeのデモデータを取得（inactiveも指定可能） |
@@ -85,7 +91,7 @@ GET APIは `ai_workspace_db.connection_test` と `ai_workspace_db.todos` の `de
 
 ## テスト
 
-`npm test` でMongoDBの認証情報不要の回帰テスト（55ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+`npm test` でMongoDBの認証情報不要の回帰テスト（59ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ### 本番スモークテスト
 
