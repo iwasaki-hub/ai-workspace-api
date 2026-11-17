@@ -1,0 +1,91 @@
+<%- include("partials/head", {pageTitle: pageTitle}) %>
+<%- include("partials/header") %>
+<main class="dash-main">
+  <section class="dash-hero">
+    <div class="container dash-hero-inner">
+      <div>
+        <span class="eyebrow"><span class="eyebrow-dot"></span> LIVE ANALYTICS</span>
+        <h1>APIの利用状況を、<br><span>数字で見える化。</span></h1>
+        <p>今日・今月のアクセス数と、エンドポイントごとの利用状況をリアルタイムに確認できます。</p>
+      </div>
+      <a href="/" class="dash-back"><%- icon("arrow") %> ホームに戻る</a>
+    </div>
+  </section>
+  <section class="dash-content" aria-labelledby="dashboard-heading">
+    <div class="container">
+      <div class="dash-title-row">
+        <div>
+          <span class="section-kicker">STATISTICS DASHBOARD</span>
+          <h2 id="dashboard-heading">アクセス統計</h2>
+          <p>公開GET APIのリクエストを集計しています。すべての日時は日本時間（JST）です。</p>
+        </div>
+        <div class="dash-live" aria-live="polite"><span class="statistics-status-dot"></span><span data-dash-updated>取得中…</span></div>
+      </div>
+
+      <div class="dash-summary" aria-label="アクセス数の概要">
+        <article class="dash-metric dash-today">
+          <span class="dash-metric-icon"><%- icon("health") %></span>
+          <span class="dash-metric-caption">TODAY</span>
+          <strong data-dash-today aria-live="polite">—</strong>
+          <span>今日のリクエスト</span>
+          <small data-dash-date>日本時間</small>
+        </article>
+        <article class="dash-metric dash-month">
+          <span class="dash-metric-icon"><%- icon("calendar") %></span>
+          <span class="dash-metric-caption">THIS MONTH</span>
+          <strong data-dash-month aria-live="polite">—</strong>
+          <span>今月のリクエスト</span>
+          <small data-dash-month-label>日本時間</small>
+        </article>
+        <article class="dash-metric dash-total">
+          <span class="dash-metric-icon"><%- icon("layers") %></span>
+          <span class="dash-metric-caption">ALL TIME</span>
+          <strong data-dash-total aria-live="polite">—</strong>
+          <span>累計リクエスト</span>
+          <small>以前からの累計を引き継ぎ</small>
+        </article>
+      </div>
+
+      <div class="dash-details-grid">
+        <section class="dash-panel" aria-labelledby="trend-title">
+          <div class="dash-panel-head">
+            <div>
+              <span class="section-kicker">LAST 7 DAYS</span>
+              <h3 id="trend-title">直近7日間のアクセス</h3>
+            </div>
+            <span class="dash-meta">JST</span>
+          </div>
+          <div class="dash-chart" data-dash-chart aria-live="polite">
+            <p class="dash-placeholder">集計データを取得中…</p>
+          </div>
+        </section>
+
+        <section class="dash-panel" aria-labelledby="endpoint-title">
+          <div class="dash-panel-head">
+            <div>
+              <span class="section-kicker">ENDPOINT BREAKDOWN</span>
+              <h3 id="endpoint-title">API別の利用回数</h3>
+            </div>
+            <span class="dash-meta">内訳集計開始以降</span>
+          </div>
+          <div class="dash-endpoints" data-dash-endpoints aria-live="polite">
+            <p class="dash-placeholder">集計データを取得中…</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="dash-info">
+        <div>
+          <strong><%- icon("info") %> 集計について</strong>
+          <p>累計は既存カウンターを引き継いでいます。日別・月別・API別の内訳は本機能の公開後から集計します。GETリクエストを対象とし、統計ページ自身やヘルスチェック、レート制限されたリクエストは含みません。</p>
+        </div>
+        <p>累計の集計開始：<time data-dash-started>取得中…</time><br>公開APIの応答を妨げないベストエフォート集計です。</p>
+      </div>
+      <div class="dash-actions">
+        <a href="/#statistics" class="dash-home-link"><%- icon("arrow") %> トップページの概要へ</a>
+        <a href="/api/stats/details" class="dash-json-link" target="_blank" rel="noopener noreferrer">統計JSONを見る <%- icon("external") %></a>
+      </div>
+    </div>
+  </section>
+</main>
+<%- include("partials/footer") %>

@@ -51,28 +51,36 @@ const todoFixture = [
 ];
 
 function mockMetricsCollection(initial = 0) {
-  const state = { total: initial };
+  const state = { total: initial, daily: {}, monthly: {}, byEndpoint: {}, increments: [] };
   const collection = {
     async findOne(query, options) {
       assert.deepEqual(query, { _id: "public-api" });
       assert.ok(options.projection);
-      return { total: state.total, startedAt: "2026-11-16T11:00:00.000Z" };
+      return { ...state, startedAt: "2026-11-16T11:00:00.000Z" };
     },
     async updateOne(query, update, options) {
       assert.deepEqual(query, { _id: "public-api" });
-      assert.deepEqual(update, { $inc: { total: 1 } });
+      assert.equal(update.$inc.total, 1);
+      assert.equal(Object.keys(update.$inc).length, 4);
       assert.equal(options.upsert, false);
-      state.total += 1;
+      for (const [key, value] of Object.entries(update.$inc)) {
+        assert.equal(value, 1);
+        const parts = key.split(".");
+        let target = state;
+        for (const part of parts.slice(0, -1)) target = target[part];
+        target[parts.at(-1)] = (target[parts.at(-1)] || 0) + value;
+      }
+      state.increments.push(update.$inc);
       return { modifiedCount: 1 };
     },
   };
   return { state, collection };
 }
 
-async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), metricsProvider, configured = true, rateLimitOptions } = {}) {
+async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), metricsProvider, metricsNow, configured = true, rateLimitOptions } = {}) {
   const { collection: metricsCollection } = mockMetricsCollection();
   const statsProvider = metricsProvider || (async () => metricsCollection);
-  const server = createApp({ collectionProvider: provider, todoCollectionProvider: todoProvider, metricsCollectionProvider: statsProvider, databaseConfigured: configured, rateLimitOptions }).listen(0, "127.0.0.1");
+  const server = createApp({ collectionProvider: provider, todoCollectionProvider: todoProvider, metricsCollectionProvider: statsProvider, metricsNow, databaseConfigured: configured, rateLimitOptions }).listen(0, "127.0.0.1");
   try {
     await new Promise((resolve, reject) => {
       if (server.listening) return resolve();
@@ -261,7 +269,7 @@ test("GET /openapi.json is a valid OpenAPI contract matching implemented GET rou
     const spec = await response.json();
     assert.equal(spec.openapi, "3.1.0");
     assert.equal(spec.info.title, "AI Workspace API");
-    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/stats", "/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
+    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/stats", "/api/stats/details", "/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
     for (const [path, pathItem] of Object.entries(spec.paths)) {
       assert.deepEqual(Object.keys(pathItem), ["get"], `No write operations in ${path}`);
       assert.ok(pathItem.get.responses["200"]);
@@ -350,8 +358,8 @@ test("Home and navigation render Font Awesome SVG icons without CDN or duplicate
     const html = await response.text();
     assert.match(html, /class="[^"]*ui-icon/);
     assert.match(html, /aria-hidden="true"/);
-    assert.match(html, /href="#overview"[^>]*>\s*<svg/);
-    assert.match(html, /href="#try-api"[^>]*>\s*<svg/);
+    assert.match(html, /href="\/#overview"[^>]*>\s*<svg/);
+    assert.match(html, /href="\/#try-api"[^>]*>\s*<svg/);
     assert.match(html, /href="\/swagger"[^>]*>\s*<svg/);
     assert.match(html, /class="openapi-link openapi-link-primary" href="\/swagger"/);
     assert.match(html, /class="feature-icon"><svg/);
@@ -638,7 +646,7 @@ test("Navigation labels and icons are high-contrast white on desktop and mobile"
     assert.match(css, /\.primary-nav\.is-open\{display:flex\}/);
     const html = await (await fetch(base + "/")).text();
     assert.match(html, /id="primary-nav" class="primary-nav"/);
-    assert.match(html, /href="#overview"/);
+    assert.match(html, /href="\/#overview"/);
   });
 });
 
@@ -822,5 +830,159 @@ test("Stats endpoint is described in the OpenAPI contract as GET-only", async ()
     assert.deepEqual(Object.keys(spec.paths["/api/stats"].get.responses).sort(), ["200", "429", "503"]);
     assert.deepEqual(spec.components.schemas.ApiStatistics.required, ["totalRequests", "startedAt"]);
     assert.equal(spec.components.schemas.ApiStatistics.additionalProperties, false);
+  });
+});
+
+
+test("GET /statistics is a separate EJS page with home navigation", async () => {
+  await withApp(async (base) => {
+    const home = await (await fetch(base + "/")).text();
+    const response = await fetch(base + "/statistics");
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type"), /html/);
+    const html = await response.text();
+    assert.match(home, /href="\/statistics"/);
+    assert.match(home, /詳しい統計を見る/);
+    assert.match(html, /id="dashboard-heading"/);
+    assert.match(html, /data-dash-today/);
+    assert.match(html, /data-dash-month/);
+    assert.match(html, /data-dash-total/);
+    assert.match(html, /data-dash-chart/);
+    assert.match(html, /data-dash-endpoints/);
+    assert.match(html, /src="\/js\/statistics-dashboard\.js"/);
+    assert.match(html, /href="\/#overview"/);
+    assert.match(html, /href="\/#endpoints"/);
+    assert.match(html, /href="\/api\/stats\/details"/);
+    assert.doesNotMatch(html, /12,480|架空の数値/);
+  });
+});
+
+test("Detailed stats preserve legacy total and show zero for unrecorded breakdowns", async () => {
+  const { collection } = mockMetricsCollection(123);
+  await withApp(async (base) => {
+    const r = await request(base, "/api/stats/details");
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get("cache-control"), "no-store");
+    assert.equal(r.body.totalRequests, 123);
+    assert.equal(r.body.todayRequests, 0);
+    assert.equal(r.body.monthRequests, 0);
+    assert.equal(r.body.date, "2026-11-17");
+    assert.equal(r.body.month, "2026-11");
+    assert.equal(r.body.timezone, "Asia/Tokyo");
+    assert.equal(r.body.last7Days.length, 7);
+    assert.deepEqual(r.body.last7Days.map((x) => x.date), [
+      "2026-11-11", "2026-11-12", "2026-11-13",
+      "2026-11-14", "2026-11-15", "2026-11-16", "2026-11-17",
+    ]);
+    assert.ok(r.body.last7Days.every((x) => x.requests === 0));
+    assert.deepEqual(r.body.endpoints, [
+      { path: "GET /api/users", requests: 0 },
+      { path: "GET /api/users/:id", requests: 0 },
+      { path: "GET /api/todos", requests: 0 },
+      { path: "GET /api/todos/:id", requests: 0 },
+    ]);
+  }, {
+    metricsProvider: async () => collection,
+    metricsNow: () => new Date("2026-11-17T03:20:00Z"),
+  });
+});
+
+test("Each GET is atomically recorded for daily JST, monthly and normalized endpoint keys", async () => {
+  const { collection, state } = mockMetricsCollection(60);
+  await withApp(async (base) => {
+    for (const path of ["/api/users", "/api/users?status=active", "/api/users/" + ids[0],
+                        "/api/todos", "/api/todos/" + ids[0]]) {
+      assert.equal((await fetch(base + path)).status, 200);
+    }
+    for (let i = 0; i < 25 && state.total !== 65; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    assert.equal(state.total, 65);
+    assert.equal(state.daily["2026-11-17"], 5);
+    assert.equal(state.monthly["2026-11"], 5);
+    assert.deepEqual(state.byEndpoint, { usersList: 2, usersDetail: 1, todosList: 1, todosDetail: 1 });
+    assert.equal(state.increments.length, 5);
+    const details = await request(base, "/api/stats/details");
+    assert.equal(details.body.totalRequests, 65);
+    assert.equal(details.body.todayRequests, 5);
+    assert.equal(details.body.monthRequests, 5);
+    assert.deepEqual(details.body.endpoints.map((x) => x.requests), [2, 1, 1, 1]);
+    assert.equal(details.body.last7Days.at(-1).requests, 5);
+  }, {
+    metricsProvider: async () => collection,
+    metricsNow: () => new Date("2026-11-17T03:20:00Z"),
+  });
+});
+
+test("JST date and month boundaries are independent of UTC server time", async () => {
+  const { japanDateKey } = await import("../middleware/metrics.js");
+  assert.equal(japanDateKey(new Date("2026-11-30T14:59:59.000Z")), "2026-11-30");
+  assert.equal(japanDateKey(new Date("2026-11-30T15:00:00.000Z")), "2026-12-01");
+  assert.equal(japanDateKey(new Date("2026-12-31T15:00:00.000Z")), "2027-01-01");
+  const { state, collection } = mockMetricsCollection();
+  let current = new Date("2026-11-30T14:59:59Z");
+  await withApp(async (base) => {
+    await fetch(base + "/api/users");
+    for (let i = 0; i < 20 && state.total !== 1; i++) await new Promise((r) => setTimeout(r, 10));
+    current = new Date("2026-11-30T15:00:00Z");
+    await fetch(base + "/api/todos");
+    for (let i = 0; i < 20 && state.total !== 2; i++) await new Promise((r) => setTimeout(r, 10));
+    assert.deepEqual(state.daily, { "2026-11-30": 1, "2026-12-01": 1 });
+    assert.deepEqual(state.monthly, { "2026-11": 1, "2026-12": 1 });
+    const r = await request(base, "/api/stats/details");
+    assert.equal(r.body.todayRequests, 1);
+    assert.equal(r.body.monthRequests, 1);
+    assert.equal(r.body.date, "2026-12-01");
+    assert.equal(r.body.month, "2026-12");
+  }, { metricsProvider: async () => collection, metricsNow: () => current });
+});
+
+test("Detailed stats polling does not change request totals, while 429 remains uncounted", async () => {
+  const { state, collection } = mockMetricsCollection();
+  await withApp(async (base) => {
+    assert.equal((await fetch(base + "/api/users")).status, 200);
+    assert.equal((await fetch(base + "/api/stats/details")).status, 429);
+    for (let i = 0; i < 20 && state.total !== 1; i++) await new Promise((r) => setTimeout(r, 10));
+    assert.equal(state.total, 1);
+  }, { metricsProvider: async () => collection, rateLimitOptions: { limit: 1, windowMs: 60000, isRender: false } });
+  await withApp(async (base) => {
+    for (let i = 0; i < 4; i++) assert.equal((await fetch(base + "/api/stats/details")).status, 200);
+  }, { metricsProvider: async () => collection });
+  assert.equal(state.total, 1);
+});
+
+test("Detailed statistics fail closed and do not expose database errors", async () => {
+  await withApp(async (base) => {
+    const r = await request(base, "/api/stats/details");
+    assert.equal(r.status, 503);
+    assert.equal(r.body.error, "service_unavailable");
+    assert.doesNotMatch(JSON.stringify(r.body), /top-secret-password/);
+  }, { metricsProvider: async () => { throw new Error("top-secret-password"); } });
+});
+
+test("Dashboard script is visibility aware, safely renders text, and has mobile layout", async () => {
+  await withApp(async (base) => {
+    const js = await (await fetch(base + "/js/statistics-dashboard.js")).text();
+    assert.match(js, /fetch\("\/api\/stats\/details"/);
+    assert.match(js, /document\.hidden/);
+    assert.match(js, /setInterval\(\(\) =>/);
+    assert.match(js, /15000/);
+    assert.match(js, /textContent = value/);
+    assert.doesNotMatch(js, /innerHTML/);
+    const css = await (await fetch(base + "/css/style.css")).text();
+    assert.match(css, /\.dash-summary\{display:grid/);
+    assert.match(css, /@media\(max-width:540px\)/);
+  });
+});
+
+test("OpenAPI documents details as GET-only and validates its shape", async () => {
+  const SwaggerParser = (await import("@apidevtools/swagger-parser")).default;
+  await withApp(async (base) => {
+    const spec = await (await fetch(base + "/openapi.json")).json();
+    assert.deepEqual(Object.keys(spec.paths["/api/stats/details"]), ["get"]);
+    assert.deepEqual(Object.keys(spec.paths["/api/stats/details"].get.responses).sort(), ["200", "429", "503"]);
+    assert.equal(spec.components.schemas.DetailedApiStatistics.additionalProperties, false);
+    const validated = await SwaggerParser.validate(spec);
+    assert.equal(validated.openapi, "3.1.0");
   });
 });
