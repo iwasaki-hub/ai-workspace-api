@@ -219,16 +219,15 @@
       <div class="example-intro">
         <span class="section-kicker">QUICK START</span>
         <h2>まずはAPIを<br>試してみよう。</h2>
-        <p>公開中の <code>GET /health</code> と <code>GET /api/users</code> を利用できます。JavaScriptの <code>fetch()</code> を使ってレスポンスを取得できます。</p>
-        <a class="text-link" href="/health" target="_blank" rel="noopener noreferrer"><%- icon("health") %> /health をブラウザで開く <%- icon("external") %></a>
+        <p>JavaScript・Python・curlで公開GET APIを呼び出すサンプルを用意しました。言語やエンドポイントを切り替えてコピーできます。</p>
+        <a class="button button-primary example-teaser-button" href="/examples"><%- icon("examples") %> コードサンプルを見る <%- icon("arrow") %></a>
       </div>
       <div class="example-editor">
-        <div class="example-tabs"><span class="active-tab">JavaScript</span><button type="button" class="copy-button" data-copy-target="fetch-sample" aria-label="サンプルコードをコピー"><%- icon("copy") %> <span data-copy-label>コードをコピー</span></button></div>
-        <pre id="fetch-sample" class="sample-code"><code>const response = await fetch("/health");
-const data = await response.json();
-
-console.log(data);
-// { status: "ok", service: "ai-workspace-api" }</code></pre>
+        <div class="example-tabs"><span class="active-tab">JavaScript / Quick Start</span><span class="sample-preview-label">READ ONLY API</span></div>
+        <pre class="sample-code"><code>const response = await fetch("https://ai-workspace-api-327r.onrender.com/api/users");
+if (!response.ok) throw new Error("HTTP " + response.status);
+const users = await response.json();
+console.log(users);</code></pre>
       </div>
     </div>
   </section>
