@@ -18,6 +18,7 @@
 - [2026-11-16 API統計のリアルタイム表示](docs/development/2026-11-16-live-api-statistics.md)
 - [2026-11-17 統計専用ページ・日別/月別/API別集計](docs/development/2026-11-17-statistics-dashboard.md)
 - [2026-11-17 使い方専用ページとAPIコードサンプル](docs/development/2026-11-17-api-code-examples.md)
+- [2026-11-17 APIアクセスログ（Render・プライバシー配慮）](docs/development/2026-11-17-api-access-logs.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -42,6 +43,12 @@ Node.js + Express + EJS + MongoDB Atlas の学習用REST API。GitHubからRende
 ## 使い方・APIコードサンプル
 
 [使い方の専用ページ（/examples）](https://ai-workspace-api-327r.onrender.com/examples)でJavaScript・Python・curlのコードサンプルを切り替えられます。公開GET APIの9種類の例を選び、そのままコードをコピーできます。ID検索は一覧から取得した24桁のObjectIdを入力してください。メニューの「使い方」はこの専用ページへ移動します。JavaScriptのサンプルは本サイトのブラウザ開発者ツールでの実行を想定しており、異なるWebサイトのブラウザから呼び出すとCORS制限を受ける場合があります。
+
+## APIアクセスログ
+
+`/api/*` と `/health` へのリクエストについて、日時（UTC）、HTTPメソッド、正規化したエンドポイント、ステータスコード、応答時間（ms）、途中切断の有無を **Renderのアプリケーションログへ1行JSON** で記録します。HTTP 429も対象です。
+
+Renderのサービス管理画面の「Logs」で `api_access` を検索すると確認できます。プライバシーを保護するため、新しく追加したログはIP、ユーザーID実値、クエリ文字列、認証ヘッダーを保存しません。公開ログ取得APIはありません。**Render標準のリクエストログは別途存在し、その情報はこの匿名化対象外です。** ログ保持期間はRenderのプランに依存します。MongoDBの設定・既存の統計カウンターには変更ありません。
 
 ## アイコンの管理
 
@@ -91,7 +98,7 @@ GET APIは `ai_workspace_db.connection_test` と `ai_workspace_db.todos` の `de
 
 ## テスト
 
-`npm test` でMongoDBの認証情報不要の回帰テスト（59ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+`npm test` でMongoDBの認証情報不要の回帰テスト（63ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ### 本番スモークテスト
 
