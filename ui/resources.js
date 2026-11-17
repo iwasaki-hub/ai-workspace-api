@@ -13,6 +13,14 @@ export const publicResources = Object.freeze([
     maxDisplayedCount: 50,
   }),
   Object.freeze({
+    path: "/api/english-phrases",
+    label: "日常英会話",
+    description: "日常会話でよく使う英語のセンテンス10個（日本語訳付き）",
+    icon: "examples",
+    countEndpoint: "/api/english-phrases",
+    maxDisplayedCount: 10,
+  }),
+  Object.freeze({
     path: "/api/todos",
     label: "ToDo",
     description: "公開デモToDoの一覧",
