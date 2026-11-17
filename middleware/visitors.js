@@ -32,7 +32,8 @@ export function createVisitorHandlers({
     if (!req.is("application/json") || !ID_PATTERN.test(req.body?.visitorId || "")) {
       return res.status(400).json({ error: "invalid_visitor", message: "無効な計測リクエストです。" });
     }
-    if (req.get("origin") && req.get("origin") !== req.protocol + "://" + req.get("host")) {
+    const publicProtocol = process.env.RENDER === "true" ? "https" : req.protocol;
+    if (req.get("origin") && req.get("origin") !== publicProtocol + "://" + req.get("host")) {
       return res.status(403).json({ error: "forbidden", message: "このサイトからのみ利用できます。" });
     }
     if (req.get("sec-fetch-site") && !["same-origin", "none"].includes(req.get("sec-fetch-site"))) {
