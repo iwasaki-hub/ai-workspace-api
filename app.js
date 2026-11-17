@@ -43,6 +43,7 @@ export function createApp({ collectionProvider, todoCollectionProvider, metricsC
   });
 
   app.get("/statistics", (_req, res) => res.render("statistics", { pageTitle: "統計ダッシュボード" }));
+  app.get("/examples", (_req, res) => res.render("examples", { pageTitle: "使い方・コードサンプル" }));
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", service: "ai-workspace-api" });

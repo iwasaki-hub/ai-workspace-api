@@ -1,0 +1,83 @@
+<%- include("partials/head", {pageTitle: pageTitle}) %>
+<%- include("partials/header") %>
+<main class="samples-main">
+  <section class="samples-hero">
+    <div class="container samples-hero-inner">
+      <div>
+        <span class="eyebrow"><span class="eyebrow-dot"></span> API QUICK START</span>
+        <h1>コードから、APIを使ってみよう。</h1>
+        <p>JavaScript・Python・curlの実用的なサンプルを掲載。エンドポイントを選んで、そのままコピーできます。</p>
+      </div>
+      <a href="/" class="dash-back"><%- icon("back") %> ホームに戻る</a>
+    </div>
+  </section>
+  <section class="samples-content" aria-labelledby="samples-heading">
+    <div class="container">
+      <div class="samples-heading">
+        <span class="section-kicker">CODE EXAMPLES</span>
+        <h2 id="samples-heading">API呼び出しサンプル</h2>
+        <p>すべて読み取り専用の公開GETリクエストです。APIキーや個人情報は必要ありません。</p>
+      </div>
+      <div class="samples-layout" data-code-examples>
+        <div class="samples-control-panel">
+          <h3>リクエストを選択</h3>
+          <label for="sample-endpoint">エンドポイント</label>
+          <select id="sample-endpoint" data-sample-endpoint>
+            <option value="users">GET /api/users — ユーザー一覧</option>
+            <option value="users-active">GET /api/users?status=active</option>
+            <option value="users-inactive">GET /api/users?status=inactive</option>
+            <option value="user-id">GET /api/users/:id — ユーザー詳細</option>
+            <option value="todos">GET /api/todos — ToDo一覧</option>
+            <option value="todo-id">GET /api/todos/:id — ToDo詳細</option>
+            <option value="health">GET /health — 稼働確認</option>
+            <option value="stats">GET /api/stats — 累計統計</option>
+            <option value="stats-details">GET /api/stats/details — 詳細統計</option>
+          </select>
+          <div class="samples-object-field" data-sample-id-field hidden>
+            <label for="sample-object-id">MongoDB ObjectId</label>
+            <input id="sample-object-id" data-sample-id type="text" maxlength="24" inputmode="text" autocomplete="off" spellcheck="false" placeholder="一覧のid（24桁の16進数）">
+            <small>一覧APIのJSONに含まれるidを入力してください。</small>
+          </div>
+          <div class="samples-request">
+            <span class="method-badge">GET</span>
+            <code data-sample-request>/api/users</code>
+          </div>
+          <p class="samples-hint" data-sample-hint role="status">公開GET APIです。コピーしたコードから実際のリクエストを送れます。</p>
+          <a class="samples-reference-link" href="/swagger"><%- icon("swagger") %> Swagger UIで仕様を確認 <%- icon("arrow") %></a>
+        </div>
+        <div class="samples-editor">
+          <div class="samples-editor-head">
+            <div class="samples-language-tabs" role="tablist" aria-label="サンプルコードの言語">
+              <button id="sample-tab-javascript" type="button" role="tab" aria-selected="true" aria-controls="sample-code-panel" tabindex="0" data-sample-language="javascript">JavaScript</button>
+              <button id="sample-tab-python" type="button" role="tab" aria-selected="false" aria-controls="sample-code-panel" tabindex="-1" data-sample-language="python">Python</button>
+              <button id="sample-tab-curl" type="button" role="tab" aria-selected="false" aria-controls="sample-code-panel" tabindex="-1" data-sample-language="curl">curl</button>
+            </div>
+            <button type="button" class="samples-copy" data-sample-copy aria-label="表示中のサンプルコードをコピー"><%- icon("copy") %> <span data-sample-copy-label>コードをコピー</span></button>
+          </div>
+          <div id="sample-code-panel" role="tabpanel" aria-labelledby="sample-tab-javascript">
+            <pre id="sample-code" class="samples-code" tabindex="0"><code data-sample-code>const response = await fetch("https://ai-workspace-api-327r.onrender.com/api/users");
+if (!response.ok) throw new Error("HTTP " + response.status);
+const data = await response.json();
+console.log(data);</code></pre>
+          </div>
+          <div class="samples-editor-foot"><span>GET · JSON / Read-only</span><span>ブラウザ外からも実行できます</span></div>
+        </div>
+      </div>
+      <div class="samples-notes">
+        <article>
+          <h3><%- icon("info") %> コードの使い方</h3>
+          <p>JavaScriptはブラウザの開発者ツールなど、PythonはPython 3の実行環境、curlはターミナルで実行できます。Pythonサンプルは標準ライブラリを使用します。</p>
+        </article>
+        <article>
+          <h3><%- icon("shield") %> 公開APIについて</h3>
+          <p>デモデータのみを返します。UsersとTodosのGET APIはレート制限の対象です。接続エラーやHTTP 429が発生した場合は時間をおいて再試行してください。</p>
+        </article>
+      </div>
+      <div class="samples-bottom-actions">
+        <a href="/#try-api"><%- icon("playground") %> ブラウザでAPIを試す <%- icon("arrow") %></a>
+        <a href="/statistics"><%- icon("health") %> 統計ダッシュボードを見る <%- icon("arrow") %></a>
+      </div>
+    </div>
+  </section>
+</main>
+<%- include("partials/footer") %>

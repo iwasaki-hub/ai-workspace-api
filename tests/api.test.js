@@ -363,7 +363,8 @@ test("Home and navigation render Font Awesome SVG icons without CDN or duplicate
     assert.match(html, /href="\/swagger"[^>]*>\s*<svg/);
     assert.match(html, /class="openapi-link openapi-link-primary" href="\/swagger"/);
     assert.match(html, /class="feature-icon"><svg/);
-    assert.match(html, /data-copy-label/);
+    assert.match(html, /href="\/examples"/);
+    assert.match(html, /example-teaser-button/);
     assert.match(html, /data-response-copy-label/);
     assert.doesNotMatch(html, /kit\.fontawesome\.com|cdnjs\.cloudflare\.com\/ajax\/libs\/font-awesome/);
   });
@@ -984,5 +985,146 @@ test("OpenAPI documents details as GET-only and validates its shape", async () =
     assert.equal(spec.components.schemas.DetailedApiStatistics.additionalProperties, false);
     const validated = await SwaggerParser.validate(spec);
     assert.equal(validated.openapi, "3.1.0");
+  });
+});
+
+
+test("Usage menu navigates to a dedicated EJS page with all nine GET examples", async () => {
+  await withApp(async (base) => {
+    const home = await (await fetch(base + "/")).text();
+    assert.match(home, /<a href="\/examples"><svg/);
+    assert.match(home, /class="[^"]*example-teaser-button[^"]*" href="\/examples"/);
+    const response = await fetch(base + "/examples");
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type"), /html/);
+    const html = await response.text();
+    assert.match(html, /使い方・コードサンプル/);
+    assert.match(html, /data-code-examples/);
+    for (const endpoint of ["users", "users-active", "users-inactive", "user-id", "todos", "todo-id", "health", "stats", "stats-details"]) {
+      assert.match(html, new RegExp('value="' + endpoint + '"'));
+    }
+    for (const language of ["javascript", "python", "curl"]) {
+      assert.match(html, new RegExp('data-sample-language="' + language + '"'));
+    }
+    assert.match(html, /data-sample-copy/);
+    assert.match(html, /src="\/js\/code-examples\.js"/);
+    assert.match(html, /role="tablist"/);
+    assert.match(html, /href="\/#try-api"/);
+    assert.doesNotMatch(html, /API_SECRET|MONGODB_URI|secret-password/);
+  });
+});
+
+test("Usage page and client asset work without MongoDB and do not affect API metrics", async () => {
+  const { collection, state } = mockMetricsCollection(30);
+  await withApp(async (base) => {
+    const paths = ["/examples", "/js/code-examples.js", "/"];
+    for (const path of paths) {
+      const response = await fetch(base + path);
+      assert.equal(response.status, 200);
+    }
+    assert.equal(state.total, 30);
+    const response = await fetch(base + "/examples", { method: "POST" });
+    assert.equal(response.status, 404);
+  }, { configured: false, metricsProvider: async () => collection });
+});
+
+test("Code examples client switches languages and validates IDs before copy", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../public/js/code-examples.js", import.meta.url), "utf8");
+  const makeElement = (properties = {}) => ({
+    textContent: "", dataset: {}, hidden: false, disabled: false, tabIndex: 0, value: "",
+    attributes: {}, handlers: {},
+    addEventListener(type, callback) { this.handlers[type] = callback; },
+    setAttribute(key, value) { this.attributes[key] = value; },
+    focus() { this.focused = true; },
+    ...properties,
+  });
+  const selector = makeElement({ value: "users" });
+  const objectId = makeElement();
+  const objectField = makeElement({ hidden: true });
+  const hint = makeElement();
+  const request = makeElement();
+  const code = makeElement();
+  const copy = makeElement();
+  const copyLabel = makeElement();
+  const panel = makeElement();
+  const tabs = ["javascript", "python", "curl"].map((language) => makeElement({
+    id: "sample-tab-" + language, dataset: { sampleLanguage: language },
+  }));
+  const lookup = new Map([
+    ["[data-sample-endpoint]", selector],
+    ["[data-sample-id]", objectId],
+    ["[data-sample-id-field]", objectField],
+    ["[data-sample-hint]", hint],
+    ["[data-sample-request]", request],
+    ["[data-sample-code]", code],
+    ["[data-sample-copy]", copy],
+    ["[data-sample-copy-label]", copyLabel],
+    ['[role="tabpanel"]', panel],
+  ]);
+  const root = {
+    querySelector: (key) => lookup.get(key),
+    querySelectorAll: (key) => key === "[data-sample-language]" ? tabs : [],
+  };
+  const copied = [];
+  runInNewContext(source, {
+    document: { querySelector: (key) => key === "[data-code-examples]" ? root : null },
+    navigator: { clipboard: { writeText: async (text) => { copied.push(text); } } },
+    setTimeout: () => 1,
+    clearTimeout: () => {},
+  });
+  assert.match(code.textContent, /^const response = await fetch/);
+  assert.match(code.textContent, /https:\/\/ai-workspace-api-327r\.onrender\.com\/api\/users/);
+  assert.equal(tabs[0].attributes["aria-selected"], "true");
+  tabs[1].handlers.click();
+  assert.match(code.textContent, /from urllib.request import urlopen/);
+  assert.match(code.textContent, /\/api\/users/);
+  assert.equal(panel.attributes["aria-labelledby"], "sample-tab-python");
+  tabs[2].handlers.keydown({ key: "Home", preventDefault() {} });
+  assert.equal(tabs[0].focused, true);
+  assert.equal(tabs[0].attributes["aria-selected"], "true");
+
+  selector.value = "user-id";
+  selector.handlers.change();
+  assert.equal(objectField.hidden, false);
+  assert.equal(copy.disabled, true);
+  assert.doesNotMatch(code.textContent, /fetch\(/);
+  objectId.value = '";alert(1);//';
+  objectId.handlers.input();
+  assert.equal(copy.disabled, true);
+
+  objectId.value = "6afaa9fb021f207d9648f5ad";
+  objectId.handlers.input();
+  assert.equal(copy.disabled, false);
+  assert.equal(request.textContent, "/api/users/6afaa9fb021f207d9648f5ad");
+  assert.match(code.textContent, /6afaa9fb021f207d9648f5ad/);
+  await copy.handlers.click();
+  assert.equal(copied.length, 1);
+  assert.equal(copied[0], code.textContent);
+
+  tabs[2].handlers.click();
+  assert.match(code.textContent, /^curl --fail-with-body/);
+  assert.match(code.textContent, /\/api\/users\/6afaa9fb021f207d9648f5ad/);
+  selector.value = "stats-details";
+  selector.handlers.change();
+  assert.equal(objectField.hidden, true);
+  assert.match(code.textContent, /\/api\/stats\/details/);
+  assert.match(code.textContent, /--location/);
+});
+
+test("Usage sample interface supports copy failure and responsive mobile styles", async () => {
+  await withApp(async (base) => {
+    const source = await (await fetch(base + "/js/code-examples.js")).text();
+    assert.match(source, /navigator\.clipboard\.writeText\(content\)/);
+    assert.match(source, /copyLabel\.textContent = "コピーできません"/);
+    assert.match(source, /copy\.disabled = !validCode/);
+    assert.match(source, /role="tabpanel"|aria-labelledby/);
+    assert.match(source, /textContent = validCode/);
+    assert.doesNotMatch(source, /innerHTML/);
+    const css = await (await fetch(base + "/css/style.css")).text();
+    assert.match(css, /\.samples-layout\{display:grid/);
+    assert.match(css, /@media\(max-width:650px\)\{\.samples-hero-inner/);
+    assert.match(css, /\.samples-language-tabs button:focus-visible/);
   });
 });
