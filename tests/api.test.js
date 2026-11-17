@@ -358,8 +358,8 @@ test("Home and navigation render Font Awesome SVG icons without CDN or duplicate
     const html = await response.text();
     assert.match(html, /class="[^"]*ui-icon/);
     assert.match(html, /aria-hidden="true"/);
-    assert.match(html, /href="/#overview"[^>]*>\s*<svg/);
-    assert.match(html, /href="/#try-api"[^>]*>\s*<svg/);
+    assert.match(html, /href="\/#overview"[^>]*>\s*<svg/);
+    assert.match(html, /href="\/#try-api"[^>]*>\s*<svg/);
     assert.match(html, /href="\/swagger"[^>]*>\s*<svg/);
     assert.match(html, /class="openapi-link openapi-link-primary" href="\/swagger"/);
     assert.match(html, /class="feature-icon"><svg/);
@@ -646,7 +646,7 @@ test("Navigation labels and icons are high-contrast white on desktop and mobile"
     assert.match(css, /\.primary-nav\.is-open\{display:flex\}/);
     const html = await (await fetch(base + "/")).text();
     assert.match(html, /id="primary-nav" class="primary-nav"/);
-    assert.match(html, /href="/#overview"/);
+    assert.match(html, /href="\/#overview"/);
   });
 });
 
