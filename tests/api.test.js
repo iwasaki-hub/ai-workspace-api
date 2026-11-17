@@ -77,7 +77,7 @@ function mockMetricsCollection(initial = 0) {
   return { state, collection };
 }
 
-async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), metricsProvider, metricsNow, configured = true, rateLimitOptions, accessLogOptions = { write: () => {} }, visitorProvider, visitorNow } = {}) {
+async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), metricsProvider, metricsNow, configured = true, rateLimitOptions, accessLogOptions = { write: () => {} }, visitorProvider = async () => fakeVisitorCollection(), visitorNow } = {}) {
   const { collection: metricsCollection } = mockMetricsCollection();
   const statsProvider = metricsProvider || (async () => metricsCollection);
   const server = createApp({ collectionProvider: provider, todoCollectionProvider: todoProvider, metricsCollectionProvider: statsProvider, metricsNow, databaseConfigured: configured, rateLimitOptions, accessLogOptions, visitorCollectionProvider: visitorProvider, visitorNow }).listen(0, "127.0.0.1");
