@@ -9,10 +9,11 @@ import { publicResources } from "./ui/resources.js";
 import { applySecurityHeaders, createApiRateLimiter } from "./middleware/security.js";
 import { createMetricsHandlers } from "./middleware/metrics.js";
 import { createAccessLogger } from "./middleware/accessLogger.js";
+import { createVisitorHandlers } from "./middleware/visitors.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function createApp({ collectionProvider, todoCollectionProvider, metricsCollectionProvider, databaseConfigured = isDatabaseConfigured(), rateLimitOptions, metricsNow, accessLogOptions } = {}) {
+export function createApp({ collectionProvider, todoCollectionProvider, metricsCollectionProvider, databaseConfigured = isDatabaseConfigured(), rateLimitOptions, metricsNow, accessLogOptions, visitorCollectionProvider, visitorNow } = {}) {
   const app = express();
 
   app.disable("x-powered-by");
@@ -47,6 +48,9 @@ export function createApp({ collectionProvider, todoCollectionProvider, metricsC
   app.get("/examples", (_req, res) => res.render("examples", { pageTitle: "使い方・コードサンプル" }));
 
   const accessLogger = createAccessLogger(accessLogOptions);
+  const visitorHandlers = createVisitorHandlers({ collectionProvider: visitorCollectionProvider, now: visitorNow });
+  // Consent-only first-party browser pings; never counted as public API traffic.
+  app.post("/visitor/collect", createApiRateLimiter(rateLimitOptions), express.json({ limit: "1kb" }), visitorHandlers.collect);
   app.use("/health", accessLogger);
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", service: "ai-workspace-api" });
@@ -58,6 +62,7 @@ export function createApp({ collectionProvider, todoCollectionProvider, metricsC
   app.use("/api", createApiRateLimiter(rateLimitOptions));
   app.get("/api/stats", getStats);
   app.get("/api/stats/details", getDetailedStats);
+  app.get("/api/stats/visitors", visitorHandlers.statistics);
   app.use("/api", trackRequest);
   app.use("/api", createApiRouter(collectionProvider, todoCollectionProvider));
   app.use("/api", (_req, res) => {
