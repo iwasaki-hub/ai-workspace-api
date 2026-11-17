@@ -20,10 +20,22 @@
 - [2026-11-17 使い方専用ページとAPIコードサンプル](docs/development/2026-11-17-api-code-examples.md)
 - [2026-11-17 APIアクセスログ（Render・プライバシー配慮）](docs/development/2026-11-17-api-access-logs.md)
 - [2026-11-17 Webサイトのユニークブラウザ計測](docs/development/2026-11-17-unique-website-visitors.md)
+- [2026-11-17 SNSのリンクプレビュー対応](docs/development/2026-11-17-social-share-preview.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
 Node.js + Express + EJS + MongoDB Atlas の学習用REST API。GitHubからRenderへ自動デプロイします。
+
+## SNS共有時のリンクプレビュー（OGP / Xカード）
+
+Webサイトのトップページ、統計ページ、使い方ページ、Swagger UIに、EJSがサーバーからHTMLを返す時点でOpen GraphとX(Twitter)カードのメタタグを追加しています。SNSにURLを貼り付けた際、タイトル・説明文・画像を持つリンクカードの表示を意図したものです。各ページの正規URLは `link rel="canonical"` と `og:url` で固定しています。
+
+- OGP画像：`https://ai-workspace-api-327r.onrender.com/social-card.png`（1200×630、PNG、サーバーがコミット済みSVGから生成しキャッシュ）
+- デザイン原本：`public/social-card.svg`。画像に動的な訪問者数や個人情報は含めません。
+- 各ページに固有の `og:title` / `og:description` / `twitter:title` / `twitter:description` を設定。
+- `twitter:card=summary_large_image`、`og:image:alt`、`og:image:width/height` なども付与。
+- JavaScript不要でボットが読み取れます。API・DBの契約、アクセスカウンターには影響しません。
+- 最終的なカードの表示・キャッシュ反映時間はSNS各社に依存します。実際の投稿や各プラットフォームで確認してください。
 
 ## UIアニメーション
 
@@ -106,7 +118,7 @@ GET APIは `ai_workspace_db.connection_test` と `ai_workspace_db.todos` の `de
 
 ## テスト
 
-`npm test` でMongoDBの認証情報不要の回帰テスト（69ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+`npm test` でMongoDBの認証情報不要の回帰テスト（72ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ### 本番スモークテスト
 
