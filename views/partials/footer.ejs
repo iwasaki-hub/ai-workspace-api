@@ -3,10 +3,18 @@
     <div><strong>AI Workspace API</strong><p>学習用 REST API プロジェクト</p></div>
     <div class="footer-links">
       <a href="https://github.com/iwasaki-hub/ai-workspace-api" target="_blank" rel="noopener noreferrer"><%- icon("github") %> GitHub <%- icon("external") %></a>
+      <button type="button" class="visitor-settings-button" data-visitor-settings>訪問者計測の設定</button>
       <a href="/health"><%- icon("health") %> Status</a>
     </div>
     <small>© <%= new Date().getFullYear() %> AI Workspace API</small>
   </div>
 </footer>
+<div class="visitor-consent" data-visitor-consent hidden role="region" aria-label="匿名訪問者計測の同意設定">
+  <p data-visitor-consent-text>匿名ブラウザ識別子を使った訪問者数の計測に同意しますか？</p>
+  <div class="visitor-consent-actions">
+    <button type="button" data-visitor-allow>同意して計測する</button>
+    <button type="button" data-visitor-decline>同意しない・停止</button>
+  </div>
+</div>
 </body>
 </html>
