@@ -993,7 +993,7 @@ test("Usage menu navigates to a dedicated EJS page with all nine GET examples", 
   await withApp(async (base) => {
     const home = await (await fetch(base + "/")).text();
     assert.match(home, /<a href="\/examples"><svg/);
-    assert.match(home, /class="example-teaser-button" href="\/examples"/);
+    assert.match(home, /class="[^"]*example-teaser-button[^"]*" href="\/examples"/);
     const response = await fetch(base + "/examples");
     assert.equal(response.status, 200);
     assert.match(response.headers.get("content-type"), /html/);
