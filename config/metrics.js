@@ -31,8 +31,8 @@ let visitorIndexPromise;
 
 /** Visitor records contain only period-specific irreversible hashes and expire automatically. */
 export async function getVisitorCollection() {
-  const metricCollection = await getMetricsCollection();
-  const collection = metricCollection.db.collection("website_visitors");
+  await getMetricsCollection();
+  const collection = (await clientPromise).db(databaseName).collection("website_visitors");
   if (!visitorIndexPromise) {
     visitorIndexPromise = Promise.all([
       collection.createIndex({ period: 1 }, { name: "visitor_period" }),
