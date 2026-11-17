@@ -15,6 +15,7 @@ export function normalizedApiPath(baseUrl, path) {
   if (/^\/todos\/[^/]+$/.test(path)) return "/api/todos/:id";
   if (path === "/stats") return "/api/stats";
   if (path === "/stats/details") return "/api/stats/details";
+  if (path === "/stats/visitors") return "/api/stats/visitors";
   return "/api/*"; // Unknown paths may carry sensitive data. Never print them.
 }
 

@@ -77,10 +77,10 @@ function mockMetricsCollection(initial = 0) {
   return { state, collection };
 }
 
-async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), metricsProvider, metricsNow, configured = true, rateLimitOptions, accessLogOptions = { write: () => {} } } = {}) {
+async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), metricsProvider, metricsNow, configured = true, rateLimitOptions, accessLogOptions = { write: () => {} }, visitorProvider = async () => fakeVisitorCollection(), visitorNow } = {}) {
   const { collection: metricsCollection } = mockMetricsCollection();
   const statsProvider = metricsProvider || (async () => metricsCollection);
-  const server = createApp({ collectionProvider: provider, todoCollectionProvider: todoProvider, metricsCollectionProvider: statsProvider, metricsNow, databaseConfigured: configured, rateLimitOptions, accessLogOptions }).listen(0, "127.0.0.1");
+  const server = createApp({ collectionProvider: provider, todoCollectionProvider: todoProvider, metricsCollectionProvider: statsProvider, metricsNow, databaseConfigured: configured, rateLimitOptions, accessLogOptions, visitorCollectionProvider: visitorProvider, visitorNow }).listen(0, "127.0.0.1");
   try {
     await new Promise((resolve, reject) => {
       if (server.listening) return resolve();
@@ -269,7 +269,7 @@ test("GET /openapi.json is a valid OpenAPI contract matching implemented GET rou
     const spec = await response.json();
     assert.equal(spec.openapi, "3.1.0");
     assert.equal(spec.info.title, "AI Workspace API");
-    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/stats", "/api/stats/details", "/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
+    assert.deepEqual(Object.keys(spec.paths).sort(), ["/api/stats", "/api/stats/details", "/api/stats/visitors", "/api/todos", "/api/todos/{id}", "/api/users", "/api/users/{id}", "/health"]);
     for (const [path, pathItem] of Object.entries(spec.paths)) {
       assert.deepEqual(Object.keys(pathItem), ["get"], `No write operations in ${path}`);
       assert.ok(pathItem.get.responses["200"]);
@@ -1250,5 +1250,155 @@ test("Access logs do not interfere with existing MongoDB metrics counters", asyn
   }, {
     metricsProvider: async () => collection,
     accessLogOptions: { write: (line) => lines.push(JSON.parse(line)) },
+  });
+});
+
+
+function fakeVisitorCollection() {
+  const records = new Map();
+  let updates = 0;
+  return {
+    records,
+    get updates() { return updates; },
+    async updateOne(query, update, options) {
+      assert.equal(options.upsert, true);
+      assert.ok(!query._id.includes("6afaa9fb"));
+      assert.ok(update.$setOnInsert.period.startsWith("day:") || update.$setOnInsert.period.startsWith("month:"));
+      assert.ok(update.$setOnInsert.expiresAt instanceof Date);
+      if (!records.has(query._id)) records.set(query._id, { ...query, ...update.$setOnInsert });
+      updates++;
+    },
+    async countDocuments(query) {
+      return [...records.values()].filter((r) => r.period === query.period).length;
+    },
+  };
+}
+
+test("Website visitor statistics require opt-in reports and keep API metrics unchanged", async () => {
+  const visitor = fakeVisitorCollection();
+  const { collection: metrics, state } = mockMetricsCollection(77);
+  const UUID_A = "e13d2136-70ee-46ca-86e1-dcc733fc1e89";
+  const UUID_B = "991a5163-b86e-4f69-ae74-cb8c3ea4baff";
+  await withApp(async (base) => {
+    const before = await request(base, "/api/stats/visitors");
+    assert.equal(before.status, 200);
+    assert.deepEqual(before.body, {
+      todayVisitors: 0, monthVisitors: 0, date: "2026-11-17",
+      month: "2026-11", timezone: "Asia/Tokyo", measurement: "consented_browsers",
+    });
+    assert.equal(before.headers.get("cache-control"), "no-store");
+    const visit = async (visitorId) => fetch(base + "/visitor/collect", {
+      method: "POST", headers: { "Content-Type": "application/json", Origin: base },
+      body: JSON.stringify({ visitorId }),
+    });
+    assert.equal((await visit(UUID_A)).status, 204);
+    assert.equal((await visit(UUID_A)).status, 204);
+    assert.equal((await visit(UUID_B)).status, 204);
+    const after = await request(base, "/api/stats/visitors");
+    assert.equal(after.body.todayVisitors, 2);
+    assert.equal(after.body.monthVisitors, 2);
+    assert.equal(visitor.records.size, 4);
+    assert.equal(visitor.updates, 6);
+    assert.ok([...visitor.records.values()].every((v) => /^[0-9a-f]{64}$/.test(v._id.split(":").at(-1))));
+    assert.doesNotMatch(JSON.stringify([...visitor.records.values()]), /e13d2136|991a5163/);
+    assert.equal(state.total, 77);
+    const classic = await request(base, "/api/stats");
+    assert.equal(classic.body.totalRequests, 77);
+  }, {
+    metricsProvider: async () => metrics,
+    visitorProvider: async () => visitor,
+    visitorNow: () => new Date("2026-11-17T04:00:00Z"),
+  });
+});
+
+test("Visitor day and month distinct counts roll over in JST independently", async () => {
+  const visitor = fakeVisitorCollection();
+  let instant = new Date("2026-11-30T14:59:58Z");
+  const token = "e13d2136-70ee-46ca-86e1-dcc733fc1e89";
+  await withApp(async (base) => {
+    const post = async () => fetch(base + "/visitor/collect", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visitorId: token }),
+    });
+    assert.equal((await post()).status, 204);
+    instant = new Date("2026-11-30T15:00:01Z");
+    assert.equal((await post()).status, 204);
+    const stat = await request(base, "/api/stats/visitors");
+    assert.equal(stat.body.date, "2026-12-01");
+    assert.equal(stat.body.month, "2026-12");
+    assert.equal(stat.body.todayVisitors, 1);
+    assert.equal(stat.body.monthVisitors, 1);
+    assert.equal(visitor.records.size, 4);
+    assert.ok([...visitor.records.values()].every((doc) => doc.expiresAt > instant));
+  }, { visitorProvider: async () => visitor, visitorNow: () => instant });
+});
+
+test("Visitor capture rejects invalid IDs and untrusted origins without database writes", async () => {
+  const visitor = fakeVisitorCollection();
+  await withApp(async (base) => {
+    const post = (value, headers = {}) => fetch(base + "/visitor/collect", {
+      method: "POST", headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify({ visitorId: value }),
+    });
+    for (const id of ["", "nope", "e13d2136-70ee-46ca-86e1-dcc733fc1e8X", "00000000-0000-0000-0000-000000000000"]) {
+      assert.equal((await post(id)).status, 400);
+    }
+    assert.equal((await post("e13d2136-70ee-46ca-86e1-dcc733fc1e89", { Origin: "https://evil.invalid" })).status, 403);
+    assert.equal((await post("e13d2136-70ee-46ca-86e1-dcc733fc1e89", { "Sec-Fetch-Site": "cross-site" })).status, 403);
+    assert.equal((await fetch(base + "/visitor/collect", { method: "POST", body: "visitorId=abc" })).status, 400);
+    assert.equal((await fetch(base + "/visitor/collect", { method: "GET" })).status, 404);
+    assert.equal(visitor.updates, 0);
+  }, { visitorProvider: async () => visitor });
+});
+
+test("Visitor stats and registration fail safely on database outage", async () => {
+  await withApp(async (base) => {
+    const r = await request(base, "/api/stats/visitors");
+    assert.equal(r.status, 503);
+    assert.equal(r.body.error, "service_unavailable");
+    assert.doesNotMatch(JSON.stringify(r.body), /secret-password/);
+    const post = await fetch(base + "/visitor/collect", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visitorId: "e13d2136-70ee-46ca-86e1-dcc733fc1e89" }),
+    });
+    assert.equal(post.status, 503);
+    assert.doesNotMatch(await post.text(), /secret-password/);
+  }, { visitorProvider: async () => { throw Error("secret-password"); } });
+});
+
+test("Visitor consent is explicit, revocable and respects GPC or DNT", async () => {
+  await withApp(async (base) => {
+    const html = await (await fetch(base + "/statistics")).text();
+    assert.match(html, /data-visitor-today/);
+    assert.match(html, /data-visitor-month/);
+    assert.match(html, /data-visitor-consent/);
+    assert.match(html, /data-visitor-settings/);
+    assert.match(html, /同意して計測する/);
+    assert.match(html, /追跡拒否設定/);
+    assert.match(html, /src="\/js\/visitor-consent.js"/);
+    const src = await (await fetch(base + "/js/visitor-consent.js")).text();
+    assert.match(src, /navigator\.globalPrivacyControl/);
+    assert.match(src, /navigator\.doNotTrack/);
+    assert.match(src, /crypto\.randomUUID/);
+    assert.match(src, /safeDelete\(idKey\)/);
+    assert.match(src, /fetch\("\/visitor\/collect"/);
+    assert.ok(src.indexOf('if (consent === "yes"') > src.indexOf('allow.addEventListener'));
+    const stats = await (await fetch(base + "/js/visitor-statistics.js")).text();
+    assert.match(stats, /fetch\("\/api\/stats\/visitors"/);
+    assert.match(stats, /document\.hidden/);
+    const css = await (await fetch(base + "/css/style.css")).text();
+    assert.match(css, /\.visitor-summary\{display:grid/);
+    assert.match(css, /@media\(max-width:650px\)\{\.visitor-statistics/);
+  });
+});
+
+test("Visitor endpoint is GET-only and documented by OpenAPI 3.1", async () => {
+  const SwaggerParser = (await import("@apidevtools/swagger-parser")).default;
+  await withApp(async (base) => {
+    const spec = await (await fetch(base + "/openapi.json")).json();
+    assert.deepEqual(Object.keys(spec.paths["/api/stats/visitors"]), ["get"]);
+    assert.deepEqual(Object.keys(spec.paths["/api/stats/visitors"].get.responses).sort(), ["200", "429", "503"]);
+    assert.equal(spec.components.schemas.WebsiteVisitorStatistics.additionalProperties, false);
+    assert.equal((await SwaggerParser.validate(spec)).openapi, "3.1.0");
   });
 });

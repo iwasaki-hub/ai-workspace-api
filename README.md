@@ -19,6 +19,7 @@
 - [2026-11-17 統計専用ページ・日別/月別/API別集計](docs/development/2026-11-17-statistics-dashboard.md)
 - [2026-11-17 使い方専用ページとAPIコードサンプル](docs/development/2026-11-17-api-code-examples.md)
 - [2026-11-17 APIアクセスログ（Render・プライバシー配慮）](docs/development/2026-11-17-api-access-logs.md)
+- [2026-11-17 Webサイトのユニークブラウザ計測](docs/development/2026-11-17-unique-website-visitors.md)
 - 公開ページ: https://ai-workspace-api-327r.onrender.com/
 - 初期MVP: 利用者による `/health` と `/api/users` の接続成功を確認（個別検索・異常系の網羅テストは今後実施）
 
@@ -50,6 +51,12 @@ Node.js + Express + EJS + MongoDB Atlas の学習用REST API。GitHubからRende
 
 Renderのサービス管理画面の「Logs」で `api_access` を検索すると確認できます。プライバシーを保護するため、新しく追加したログはIP、ユーザーID実値、クエリ文字列、認証ヘッダーを保存しません。公開ログ取得APIはありません。**Render標準のリクエストログは別途存在し、その情報はこの匿名化対象外です。** ログ保持期間はRenderのプランに依存します。MongoDBの設定・既存の統計カウンターには変更ありません。
 
+## Webサイトのユニーク訪問者（オプトイン）
+
+`/statistics` に「今日・今月のユニークブラウザ」を追加しました。トップページ・統計ページ・使い方ページで、訪問者が明示的に同意した場合に限りブラウザ内でランダムなIDを生成し、期間別ハッシュのみをMongoDB Atlasに期限付きで保存します。IP・生のID・ページ履歴は保存しません。フッターの「訪問者計測の設定」から停止でき、GPC/DNTも尊重します。実際の人数ではなく同意したブラウザの概数です。過去分は推定補完しません。
+
+新規 `GET /api/stats/visitors` は今日・今月の訪問者集計値のみを返します。既存APIカウンターは不変です。統計用Atlasユーザーで `website_visitors` コレクションとTTLインデックスを初期化し、期間終了から約40日後にレコードが失効します。詳しくは開発記録をご確認ください。
+
 ## アイコンの管理
 
 Font Awesome FreeのSVGアイコンを使用しています。**アイコンの選択と名称は `ui/icons.js` に集約**し、EJS画面では `<%- icon("overview") %>` のように用途別のキーで表示します。追加・変更する場合はこのファイルを編集してください。CDNやFont Awesome Kitの設定は不要です。
@@ -79,6 +86,7 @@ Swagger UIでの操作はGETのみです。APIを追加・変更するときは 
 | GET | `/api/todos/:id` | ObjectIdで公開デモToDoを1件取得 |
 | GET | `/api/stats` | 累計APIリクエスト数・集計開始日時の取得 |
 | GET | `/api/stats/details` | 今日・今月・直近7日・API別アクセス数（JST） |
+| GET | `/api/stats/visitors` | 同意済みユニークブラウザの今日・今月の集計値 |
 
 GET APIは `ai_workspace_db.connection_test` と `ai_workspace_db.todos` の `demo: true` のレコードのみを返します。ユーザーの返却フィールドは `id`, `name`, `status`, `purpose`、ToDoは `id`, `title`, `completed` のみです。MongoDBの `_id` は文字列の `id` に変換します。書き込み用APIはありません。
 
@@ -98,7 +106,7 @@ GET APIは `ai_workspace_db.connection_test` と `ai_workspace_db.todos` の `de
 
 ## テスト
 
-`npm test` でMongoDBの認証情報不要の回帰テスト（63ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
+`npm test` でMongoDBの認証情報不要の回帰テスト（69ケース）を実行できます。GitHub Actionsも `main` へのpushとPull Requestで自動実行します。実データベースへの統合テストとは区別してください。
 
 ### 本番スモークテスト
 
