@@ -128,12 +128,12 @@ async function main() {
     assert.ok(Number.isSafeInteger(body.todayRequests) && body.todayRequests >= 0);
     assert.ok(Number.isSafeInteger(body.monthRequests) && body.monthRequests >= body.todayRequests);
     assert.equal(body.timezone, "Asia/Tokyo");
-    assert.match(body.date, /^\\d{4}-\\d{2}-\\d{2}$/);
-    assert.match(body.month, /^\\d{4}-\\d{2}$/);
+    assert.match(body.date, /^\d{4}-\d{2}-\d{2}$/);
+    assert.match(body.month, /^\d{4}-\d{2}$/);
     assert.ok(Array.isArray(body.last7Days) && body.last7Days.length === 7);
     assert.ok(Array.isArray(body.endpoints) && body.endpoints.length === 4);
     for (const day of body.last7Days) {
-      assert.match(day.date, /^\\d{4}-\\d{2}-\\d{2}$/);
+      assert.match(day.date, /^\d{4}-\d{2}-\d{2}$/);
       assert.ok(Number.isSafeInteger(day.requests) && day.requests >= 0);
     }
     for (const entry of body.endpoints) {
