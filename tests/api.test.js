@@ -77,10 +77,10 @@ function mockMetricsCollection(initial = 0) {
   return { state, collection };
 }
 
-async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), metricsProvider, metricsNow, configured = true, rateLimitOptions } = {}) {
+async function withApp(run, { provider = async () => mockCollection(), todoProvider = async () => mockCollection(todoFixture), metricsProvider, metricsNow, configured = true, rateLimitOptions, accessLogOptions = { write: () => {} } } = {}) {
   const { collection: metricsCollection } = mockMetricsCollection();
   const statsProvider = metricsProvider || (async () => metricsCollection);
-  const server = createApp({ collectionProvider: provider, todoCollectionProvider: todoProvider, metricsCollectionProvider: statsProvider, metricsNow, databaseConfigured: configured, rateLimitOptions }).listen(0, "127.0.0.1");
+  const server = createApp({ collectionProvider: provider, todoCollectionProvider: todoProvider, metricsCollectionProvider: statsProvider, metricsNow, databaseConfigured: configured, rateLimitOptions, accessLogOptions }).listen(0, "127.0.0.1");
   try {
     await new Promise((resolve, reject) => {
       if (server.listening) return resolve();
@@ -1126,5 +1126,129 @@ test("Usage sample interface supports copy failure and responsive mobile styles"
     assert.match(css, /\.samples-layout\{display:grid/);
     assert.match(css, /@media\(max-width:650px\)\{\.samples-hero-inner/);
     assert.match(css, /\.samples-language-tabs button:focus-visible/);
+  });
+});
+
+
+test("Access logs record successful, invalid, missing, limited and health requests", async () => {
+  const recorded = [];
+  let tick = 0;
+  const accessLogOptions = {
+    write: (line) => recorded.push(JSON.parse(line)),
+    now: () => new Date("2026-11-17T12:34:56.789Z"),
+    monotonic: () => ++tick * 1.25,
+  };
+  await withApp(async (base) => {
+    assert.equal((await fetch(base + "/health")).status, 200);
+    assert.equal((await fetch(base + "/api/users?status=active&token=VERY_PRIVATE_VALUE")).status, 200);
+    assert.equal((await fetch(base + "/api/users/" + ids[0])).status, 200);
+    assert.equal((await fetch(base + "/api/users/not-an-id?password=PRIVATE_PASSWORD")).status, 429);
+    assert.equal((await fetch(base + "/api/anything/VERY_PRIVATE_VALUE")).status, 429);
+    assert.equal((await fetch(base + "/examples")).status, 200);
+    assert.equal((await fetch(base + "/")).status, 200);
+    assert.equal((await fetch(base + "/swagger")).status, 200);
+    assert.equal((await fetch(base + "/api/stats")).status, 429);
+  }, { accessLogOptions, rateLimitOptions: { limit: 2, windowMs: 60_000, isRender: false } });
+  assert.equal(recorded.length, 6);
+  assert.deepEqual(recorded.map(({ endpoint, statusCode }) => [endpoint, statusCode]), [
+    ["/health", 200],
+    ["/api/users", 200],
+    ["/api/users/:id", 200],
+    ["/api/users/:id", 429],
+    ["/api/*", 429],
+    ["/api/stats", 429],
+  ]);
+  for (const entry of recorded) {
+    assert.deepEqual(Object.keys(entry), [
+      "event", "timestamp", "method", "endpoint", "statusCode", "durationMs", "aborted",
+    ]);
+    assert.equal(entry.event, "api_access");
+    assert.equal(entry.timestamp, "2026-11-17T12:34:56.789Z");
+    assert.ok(entry.durationMs >= 0);
+    assert.equal(entry.aborted, false);
+  }
+  const json = JSON.stringify(recorded);
+  assert.doesNotMatch(json, /PRIVATE_PASSWORD|VERY_PRIVATE_VALUE|token=|password=|6afaa9fb021f207d9648f5ad|cf-connecting-ip|198.51.100/);
+});
+
+test("Access logs retain real HTTP status for 400, 404, 503, stats and disallowed methods", async () => {
+  const records = [];
+  await withApp(async (base) => {
+    assert.equal((await fetch(base + "/api/users/not-valid")).status, 400);
+    assert.equal((await fetch(base + "/api/unknown/secret")).status, 404);
+    assert.equal((await fetch(base + "/api/todos", { method: "POST" })).status, 404);
+    assert.equal((await fetch(base + "/api/users")).status, 503);
+    assert.equal((await fetch(base + "/api/stats")).status, 200);
+    assert.equal((await fetch(base + "/api/stats/details")).status, 200);
+  }, {
+    provider: async () => { throw Error("fake-db-secret"); },
+    accessLogOptions: { write: (line) => records.push(JSON.parse(line)) },
+  });
+  assert.deepEqual(records.map((r) => [r.method, r.endpoint, r.statusCode]), [
+    ["GET", "/api/users/:id", 400],
+    ["GET", "/api/*", 404],
+    ["POST", "/api/todos", 404],
+    ["GET", "/api/users", 503],
+    ["GET", "/api/stats", 200],
+    ["GET", "/api/stats/details", 200],
+  ]);
+  assert.doesNotMatch(JSON.stringify(records), /fake-db-secret/);
+});
+
+test("Access logger records aborted connections once and ignores writer failures", async () => {
+  const { createAccessLogger, normalizedApiPath } = await import("../middleware/accessLogger.js");
+  const { EventEmitter } = await import("node:events");
+  assert.equal(normalizedApiPath("/api", "/users/" + ids[0]), "/api/users/:id");
+  assert.equal(normalizedApiPath("/api", "/todos/" + ids[0]), "/api/todos/:id");
+  assert.equal(normalizedApiPath("/api", "/stats/details"), "/api/stats/details");
+  assert.equal(normalizedApiPath("/api", "/secret?token=hidden"), "/api/*");
+  const events = [];
+  const middleware = createAccessLogger({
+    write: (line) => events.push(JSON.parse(line)),
+    now: () => new Date("2026-11-17T00:00:00Z"),
+    monotonic: (() => { let t = 0; return () => ++t * 4; })(),
+  });
+  const response = new EventEmitter();
+  response.statusCode = 200;
+  response.writableFinished = false;
+  let nextCalled = false;
+  middleware({ method: "GET", baseUrl: "/api", path: "/users/token-SECRET" }, response, () => { nextCalled = true; });
+  assert.equal(nextCalled, true);
+  response.emit("close");
+  response.emit("finish");
+  assert.equal(events.length, 1);
+  assert.equal(events[0].aborted, true);
+  assert.equal(events[0].statusCode, null);
+  assert.equal(events[0].endpoint, "/api/users/:id");
+  assert.equal(events[0].durationMs, 4);
+  assert.doesNotMatch(JSON.stringify(events), /token-SECRET/);
+
+  const failure = createAccessLogger({ write: () => { throw new Error("writer failed"); } });
+  const okResponse = new EventEmitter();
+  okResponse.statusCode = 200;
+  okResponse.writableFinished = true;
+  failure({ method: "GET", baseUrl: "/health", path: "/" }, okResponse, () => {});
+  assert.doesNotThrow(() => {
+    okResponse.emit("finish");
+    okResponse.emit("close");
+  });
+});
+
+test("Access logs do not interfere with existing MongoDB metrics counters", async () => {
+  const { collection, state } = mockMetricsCollection(10);
+  const lines = [];
+  await withApp(async (base) => {
+    assert.equal((await fetch(base + "/health")).status, 200);
+    assert.equal((await fetch(base + "/api/users")).status, 200);
+    assert.equal((await fetch(base + "/api/stats/details")).status, 200);
+    assert.equal((await fetch(base + "/api/unknown")).status, 404);
+    for (let i = 0; i < 20 && state.total !== 11; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    assert.equal(state.total, 11);
+    assert.equal(lines.length, 4);
+  }, {
+    metricsProvider: async () => collection,
+    accessLogOptions: { write: (line) => lines.push(JSON.parse(line)) },
   });
 });

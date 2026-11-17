@@ -8,10 +8,11 @@ import { icon } from "./ui/icons.js";
 import { publicResources } from "./ui/resources.js";
 import { applySecurityHeaders, createApiRateLimiter } from "./middleware/security.js";
 import { createMetricsHandlers } from "./middleware/metrics.js";
+import { createAccessLogger } from "./middleware/accessLogger.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function createApp({ collectionProvider, todoCollectionProvider, metricsCollectionProvider, databaseConfigured = isDatabaseConfigured(), rateLimitOptions, metricsNow } = {}) {
+export function createApp({ collectionProvider, todoCollectionProvider, metricsCollectionProvider, databaseConfigured = isDatabaseConfigured(), rateLimitOptions, metricsNow, accessLogOptions } = {}) {
   const app = express();
 
   app.disable("x-powered-by");
@@ -45,11 +46,15 @@ export function createApp({ collectionProvider, todoCollectionProvider, metricsC
   app.get("/statistics", (_req, res) => res.render("statistics", { pageTitle: "統計ダッシュボード" }));
   app.get("/examples", (_req, res) => res.render("examples", { pageTitle: "使い方・コードサンプル" }));
 
+  const accessLogger = createAccessLogger(accessLogOptions);
+  app.use("/health", accessLogger);
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", service: "ai-workspace-api" });
   });
 
   const { trackRequest, getStats, getDetailedStats } = createMetricsHandlers(metricsCollectionProvider, metricsNow);
+  // Log every API response, including 429, 404 and 503, before rate limiting.
+  app.use("/api", accessLogger);
   app.use("/api", createApiRateLimiter(rateLimitOptions));
   app.get("/api/stats", getStats);
   app.get("/api/stats/details", getDetailedStats);
